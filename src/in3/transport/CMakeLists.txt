@@ -1,0 +1,8 @@
+OPTION(USE_CURL "if true " ON)
+OPTION(TRANSPORTS "builds transports, which may require extra libraries." ON)
+IF (TRANSPORTS)
+    IF (USE_CURL)
+        add_subdirectory(curl)
+    ENDIF()
+    add_subdirectory(http)
+ENDIF (TRANSPORTS)
