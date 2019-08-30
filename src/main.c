@@ -1,6 +1,6 @@
 #include <client.h>   // the core client
 #include <eth_api.h>  // wrapper for easier use
-#include <eth_full.h> // the full ethereum verifier containing the EVM
+#include <eth_basic.h> // the full ethereum verifier containing the EVM
 #include <log.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@
 int main() {
 
   // register a chain-verifier for full Ethereum-Support
-  in3_register_eth_full();
+  in3_register_eth_basic();
 
   // create new incubed client
   in3_t* in3_client = in3_new();

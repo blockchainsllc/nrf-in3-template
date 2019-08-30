@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "log.h"
 #include <stdlib.h>
+#include "mem_manager.h"
 
 #ifdef __ZEPHYR__
 // FIXME: Below hack is until af529d1 is merged

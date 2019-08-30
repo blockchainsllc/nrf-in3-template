@@ -20,7 +20,8 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 		$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
 		$(wildcard $(SRC_DIR)/in3/third-party/crypto/*.c) \
 		$(wildcard $(SRC_DIR)/in3/third-party/tommath/*.c) \
-		$(wildcard $(SRC_DIR)/in3/verifier/eth1/**/*.c) \
+		$(wildcard $(SRC_DIR)/in3/verifier/eth1/nano/*.c) \
+		$(wildcard $(SRC_DIR)/in3/verifier/eth1/basic/*.c) \
 	  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -28,6 +29,7 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
+		$(SDK_ROOT)/components/libraries/mem_manager/mem_manager.c \
 	  $(SDK_ROOT)/components/boards/boards.c \
 	  $(SDK_ROOT)/components/libraries/util/app_error.c \
 	  $(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
@@ -58,8 +60,6 @@ INC_FOLDERS += \
 	$(SRC_DIR)/in3/third-party/crypto \
 	$(SRC_DIR)/in3/third-party/tommath \
 	$(SRC_DIR)/in3/verifier/eth1/basic \
-	$(SRC_DIR)/in3/verifier/eth1/evm \
-	$(SRC_DIR)/in3/verifier/eth1/full \
 	$(SRC_DIR)/in3/verifier/eth1/nano \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/external/nrf_cc310/include \
@@ -70,6 +70,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/balloc \
   $(SDK_ROOT)/components/libraries/log \
   $(SDK_ROOT)/components/libraries/memobj \
+	$(SDK_ROOT)/components/libraries/mem_manager/ \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/modules/nrfx/mdk \
   $(SDK_ROOT)/components/libraries/strerror \
