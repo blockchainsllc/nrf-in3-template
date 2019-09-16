@@ -1,40 +1,99 @@
-#include <client.h>   // the core client
 #include <eth_api.h>  // wrapper for easier use
-#include <eth_basic.h> // the full ethereum verifier containing the EVM
-#include <log.h>
-#include <inttypes.h>
-#include <stdio.h>
-#if defined(_WIN32) || defined(WIN32)
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
+#include <eth_nano.h> // the full ethereum verifier containing the EVM
+#include "in3_mock.h"
+#include "debug.h"
 
-int main() {
+static const char* in3_nano_mock =
+        "{\n"
+        "        \"descr\": \"correct TransactionReceipt\",\n"
+        "        \"success\": true,\n"
+        "        \"fuzzer\": true,\n"
+        "        \"chainId\": \"0x44d\",\n"
+        "        \"request\": {\n"
+        "            \"id\": 1,\n"
+        "            \"jsonrpc\": \"2.0\",\n"
+        "            \"method\": \"eth_getTransactionReceipt\",\n"
+        "            \"params\": [\n"
+        "                \"0x5dc2a9ec73abfe0640f27975126bbaf14624967e2b0b7c2b3a0fb6111f0d3c5e\"\n"
+        "            ]\n"
+        "        },\n"
+        "        \"response\": [\n"
+        "            {\n"
+        "                \"result\": {\n"
+        "                    \"blockHash\": \"0xea6ee1e20d3408ad7f6981cfcc2625d80b4f4735a75ca5b20baeb328e41f0304\",\n"
+        "                    \"blockNumber\": \"0x8c1e39\",\n"
+        "                    \"contractAddress\": null,\n"
+        "                    \"cumulativeGasUsed\": \"0x2466d\",\n"
+        "                    \"gasUsed\": \"0x2466d\",\n"
+        "                    \"logs\": [\n"
+        "                        {\n"
+        "                            \"address\": \"0x85ec283a3ed4b66df4da23656d4bf8a507383bca\",\n"
+        "                            \"blockHash\": \"0xea6ee1e20d3408ad7f6981cfcc2625d80b4f4735a75ca5b20baeb328e41f0304\",\n"
+        "                            \"blockNumber\": \"0x8c1e39\",\n"
+        "                            \"data\": \"0x0000000000000000000000009a75ea8f9934eb630c403dc14e11f27f5fbe7492000000000000000000000000000000000000000000000000000000005c1a511a000000000000000000000000000000000000000000000000000000005c1a598a000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000110d9316ec000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000815\",\n"
+        "                            \"logIndex\": \"0x0\",\n"
+        "                            \"removed\": false,\n"
+        "                            \"topics\": [\n"
+        "                                \"0x9123e6a7c5d144bd06140643c88de8e01adcbb24350190c02218a4435c7041f8\",\n"
+        "                                \"0xa2f7689fc12ea917d9029117d32b9fdef2a53462c853462ca86b71b97dd84af6\",\n"
+        "                                \"0x55a6ef49ec5dcf6cd006d21f151f390692eedd839c813a150000000000000000\"\n"
+        "                            ],\n"
+        "                            \"transactionHash\": \"0x5dc2a9ec73abfe0640f27975126bbaf14624967e2b0b7c2b3a0fb6111f0d3c5e\",\n"
+        "                            \"transactionIndex\": \"0x0\",\n"
+        "                            \"transactionLogIndex\": \"0x0\",\n"
+        "                            \"type\": \"mined\"\n"
+        "                        }\n"
+        "                    ],\n"
+        "                    \"logsBloom\": \"0x00000000000000000000200000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000400000000000000000000000000000000800000000000000000000000040000000000000000000000000000000000000010000000000000000000000000000080000000000000000000020000000000000000000000000000000080000000000010000000000000080000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\n"
+        "                    \"root\": null,\n"
+        "                    \"status\": \"0x1\",\n"
+        "                    \"transactionHash\": \"0x5dc2a9ec73abfe0640f27975126bbaf14624967e2b0b7c2b3a0fb6111f0d3c5e\",\n"
+        "                    \"transactionIndex\": \"0x0\"\n"
+        "                },\n"
+        "                \"in3\": {\n"
+        "                    \"proof\": {\n"
+        "                        \"type\": \"receiptProof\",\n"
+        "                        \"block\": \"0xf9023fa019e9d929ab58d9ad6ec252502be9672a9763ecd35cee2823e682fa8e0f693279a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347944ba15b56452521c0826a35a6f2022e1210fc519ba0912a6d568af4007213f2a32618a46caa64ab7a97d64e52dd529a5c59c575c0f3a072f028585ccb6cae16ec86afb8eaf711d727a807976dae7010aec5c01dd28f2aa066cd6f3a4ca1c0e4e413c9c224b3a713e8928ee1ca6a6a3beed7a0169aa820ecb901000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000040000000000000000000000000000000080000000000000000000000004000000000000000000000000000000000000001000000000000000000000000000008000000000000000000002000000000000000000000000000000008000000000001000000000000008000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000090fffffffffffffffffffffffffffffffd838c1e398404c4b40083039414845c1a511a96d583010b088650617269747986312e32372e32826c69841eb3705eb84119b79d33d2394bb8de4234dec9c36d3f25c8736896ea5cb6238f5d8907fdecde114cbb7116ae23a9131e43aa94d0f2ed8326d445da6ef6e99f7f89ebea59383500\",\n"
+        "                        \"txProof\": [\n"
+        "                            \"0xf851a083c8446ab9321302f2332ed45e4c2044668601f06ee7933198c01f8621e4e63d80808080808080a0de189bd29d710f398681ab9d0d3a4701ccf2192e2c76ea424f2f9b63cc13e1798080808080808080\",\n"
+        "                            \"0xf8d630b8d3f8d13d8502540be400830f42409485ec283a3ed4b66df4da23656d4bf8a507383bca87110d9316ec0000b864400a631555a6ef49ec5dcf6cd006d21f151f390692eedd839c813a150000000000000000000000000000000000000000000000000000000000000000000000000000087000000000000000000000000000000000000000000000000000000000000000001ba053c1ecad49ffc45516ce01c7aa808c56f0927ca87b1fa4400d7a178c8c4cba0ba05b419ee55f24d7cd0b1b8744a4d1dd44e133cb090334ceb23be8dbb5c0f80d1d\"\n"
+        "                        ],\n"
+        "                        \"merkleProof\": [\n"
+        "                            \"0xf851a0b0f5b7429a54b10c716da584b3b972ff54dbb20397ab362cac43d53e0057742080808080808080a065aa1b8cad489e2928c5295b973c4c440930a937862c7060607f017e8d70261c8080808080808080\",\n"
+        "                            \"0xf9027130b9026df9026a018302466db9010000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000400000000000000000000000000000000800000000000000000000000040000000000000000000000000000000000000010000000000000000000000000000080000000000000000000020000000000000000000000000000000080000000000010000000000000080000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f9015ff9015c9485ec283a3ed4b66df4da23656d4bf8a507383bcaf863a09123e6a7c5d144bd06140643c88de8e01adcbb24350190c02218a4435c7041f8a0a2f7689fc12ea917d9029117d32b9fdef2a53462c853462ca86b71b97dd84af6a055a6ef49ec5dcf6cd006d21f151f390692eedd839c813a150000000000000000b8e00000000000000000000000009a75ea8f9934eb630c403dc14e11f27f5fbe7492000000000000000000000000000000000000000000000000000000005c1a511a000000000000000000000000000000000000000000000000000000005c1a598a000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000110d9316ec000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000815\"\n"
+        "                        ],\n"
+        "                        \"txIndex\": 0,\n"
+        "                        \"signatures\": [],\n"
+        "                        \"merkleProofPrev\": false\n"
+        "                    },\n"
+        "                    \"currentBlock\": 9182894,\n"
+        "                    \"lastNodeList\": 6194869,\n"
+        "                    \"execTime\": 111\n"
+        "                }\n"
+        "            }\n"
+        "        ]\n"
+        "    }";
 
-  // register a chain-verifier for full Ethereum-Support
-  in3_register_eth_basic();
+void main(void){
+    dbg_log("IN3 NANO");
+    in3_register_eth_nano();
 
-  // create new incubed client
-  in3_t* in3_client = in3_new();
+    json_ctx_t *parsed = parse_json(in3_nano_mock);
+    d_token_t *test = parsed->result;
 
-  // set your config
-  in3_client->transport    = NULL; // use curl to handle the requests
-  in3_client->requestCount = 1;         // number of requests to send
-  in3_client->chainId      = 0x44d;     // use tobalaba
-
-  in3_log_set_level(LOG_TRACE);
-
-  // use a ethereum-api instead of pure JSON-RPC-Requests
-  eth_block_t* block = eth_getBlockByNumber(in3_client, 11773341, true);
-
-  if (!block)
-    printf("Could not find the Block: %s\n", eth_last_error());
-  else {
-    printf("Number of verified transactions in block: %i\n", block->tx_count);
-    free(block);
-  }
-
-  // clean up
-  in3_free(in3_client);
+    if (parsed) {
+        int i;
+        char *str_proof = NULL;
+        in3_proof_t proof = PROOF_STANDARD;
+        if ((str_proof = d_get_string(test, "proof"))) {
+            if (strcmp(str_proof, "none") == 0) { proof = PROOF_NONE; }
+            if (strcmp(str_proof, "standard") == 0) { proof = PROOF_STANDARD; }
+            if (strcmp(str_proof, "full") == 0) { proof = PROOF_FULL; }
+        }
+        prepare_response(d_get(test, key("response")));
+        run_request(test, 1, proof);
+    }
+    else{
+        dbg_log("Error at json parsing");
+    }
 }

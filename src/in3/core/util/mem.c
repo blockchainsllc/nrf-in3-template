@@ -2,7 +2,6 @@
 #include "debug.h"
 #include "log.h"
 #include <stdlib.h>
-#include "mem_manager.h"
 
 #ifdef __ZEPHYR__
 // FIXME: Below hack is until af529d1 is merged
@@ -51,7 +50,7 @@ void* _malloc_(size_t size, char* file, const char* func, int line) {
 #ifdef __ZEPHYR__
   void* ptr = k_malloc(size);
 #else
-  void* ptr = nrf_malloc(size);
+  void* ptr = malloc(size);
 #endif
   if (size && !ptr) {
     in3_log(LOG_FATAL, file, func, line, "Failed to allocate memory!\n");
@@ -64,7 +63,7 @@ void* _calloc_(size_t n, size_t size, char* file, const char* func, int line) {
 #ifdef __ZEPHYR__
   void* ptr = k_calloc(n, size);
 #else
-  void* ptr = nrf_calloc(n, size);
+  void* ptr = calloc(n, size);
 #endif
   if (n && size && !ptr) {
     in3_log(LOG_FATAL, file, func, line, "Failed to allocate memory!\n");
@@ -78,7 +77,7 @@ void* _realloc_(void* ptr, size_t size, size_t oldsize, char* file, const char* 
   ptr = k_realloc(ptr, size, oldsize);
 #else
   UNUSED_VAR(oldsize);
-  ptr = nrf_realloc(ptr, size);
+  ptr = realloc(ptr, size);
 #endif
   if (size && !ptr) {
     in3_log(LOG_FATAL, file, func, line, "Failed to allocate memory!\n");
@@ -91,7 +90,7 @@ void _free_(void* ptr) {
 #ifdef __ZEPHYR__
   k_free(ptr);
 #else
-  nrf_free(ptr);
+  free(ptr);
 #endif
 }
 

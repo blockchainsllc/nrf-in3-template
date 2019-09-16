@@ -49,11 +49,15 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 	  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
 	  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
 	  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
+		$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
+		$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
+		$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c
+
 
 # Include folders common to all targets
 INC_FOLDERS += \
   $(SDK_ROOT)/external/fprintf \
-  $(SRC_DIR) \
+  $(INC_DIR) \
 	$(SRC_DIR)/in3/api/eth1 \
 	$(SRC_DIR)/in3/core/client \
 	$(SRC_DIR)/in3/core/util \
@@ -86,13 +90,14 @@ INC_FOLDERS += \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/components/libraries/util \
   $(SDK_ROOT)/external/nrf_cc310/common \
+	$(SDK_ROOT)/external/segger_rtt \
 
 # Libraries common to all targets
 LIB_FILES += \
   $(SDK_ROOT)/external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.12.a \
 
 # Optimization flags
-OPT = -O3 -g3
+OPT = -O0 -g3
 # Uncomment the line below to enable link time optimization
 #OPT += -flto
 
@@ -102,6 +107,8 @@ CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DBSP_DEFINES_ONLY
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DDEBUG
+CFLAGS += -D__NRF_FREERTOS__
+CFLAGS += -DIN3_EXIT_SYSTEMRESET
 CFLAGS += -DDEBUG_NRF
 CFLAGS += -DDX_CC_TEE
 CFLAGS += -DECC_INTEGTEST
