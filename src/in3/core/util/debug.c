@@ -10,8 +10,9 @@
   #ifdef __NRF_FREERTOS__
     #include "SEGGER_RTT.h"
     #define __segger_printf(...) SEGGER_RTT_printf(0, __VA_ARGS__)
+    #define __segger_vprintf(fmt, args) SEGGER_RTT_vprintf(0, fmt, &args)
     #define printX __segger_printf
-    #define vprintX __segger_printf
+    #define vprintX __segger_vprintf
   #else
     #define printX printf
     #define vprintX vprintf

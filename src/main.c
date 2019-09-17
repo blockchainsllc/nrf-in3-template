@@ -25,7 +25,8 @@ int main() {
   // set your config
   in3_client->transport    = transport_mock; // use curl to handle the requests
   in3_client->requestCount = 1;         // number of requests to send
-  in3_client->chainId      = 0x1;     // use tobalaba
+  in3_client->chainId      = 0x1;
+  in3_client->proof        = PROOF_STANDARD;
 
   in3_log_set_level(LOG_TRACE);
 
@@ -33,9 +34,9 @@ int main() {
   eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
 
   if (!block)
-    printf("Could not find the Block: %s\n", eth_last_error());
+    dbg_log("Could not find the Block: %s\n", eth_last_error());
   else {
-    printf("Number of verified transactions in block: %i\n", block->tx_count);
+    dbg_log("Number of verified transactions in block: %d\n", block->tx_count);
     free(block);
   }
 
