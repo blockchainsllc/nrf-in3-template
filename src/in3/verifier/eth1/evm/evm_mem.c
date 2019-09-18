@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "evm_mem.h"
 #include "../../../core/client/context.h"
 #include "../../../core/util/data.h"
 #include "../../../core/util/log.h"

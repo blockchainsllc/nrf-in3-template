@@ -9,7 +9,7 @@
 #include "../nano/serialize.h"
 #include "big.h"
 #include "gas.h"
-#include "mem.h"
+#include "evm_mem.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -732,6 +732,3 @@ int op_sstore(evm_t* evm) {
     return 0;
 }
 #endif
-
-
-

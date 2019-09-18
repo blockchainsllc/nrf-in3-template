@@ -22,6 +22,8 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 		$(wildcard $(SRC_DIR)/in3/third-party/tommath/*.c) \
 		$(wildcard $(SRC_DIR)/in3/verifier/eth1/nano/*.c) \
 		$(wildcard $(SRC_DIR)/in3/verifier/eth1/basic/*.c) \
+		$(wildcard $(SRC_DIR)/in3/verifier/eth1/evm/*.c) \
+		$(wildcard $(SRC_DIR)/in3/verifier/eth1/full/*.c) \
 	  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
 	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -65,6 +67,8 @@ INC_FOLDERS += \
 	$(SRC_DIR)/in3/third-party/tommath \
 	$(SRC_DIR)/in3/verifier/eth1/basic \
 	$(SRC_DIR)/in3/verifier/eth1/nano \
+	$(SRC_DIR)/in3/verifier/eth1/evm \
+	$(SRC_DIR)/in3/verifier/eth1/full \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/external/nrf_cc310/include \
   $(SDK_ROOT)/components/libraries/atomic \
@@ -105,6 +109,7 @@ OPT = -Os -g3
 CFLAGS += $(OPT)
 CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DBSP_DEFINES_ONLY
+CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DDEBUG
 CFLAGS += -D__NRF_FREERTOS__
