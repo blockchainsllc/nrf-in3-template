@@ -91,7 +91,7 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
         while(app_uart_put(urls[i][j]) != NRF_SUCCESS);
       }
 
-      while(app_uart_put(";") != NRF_SUCCESS);
+      while(app_uart_put(';') != NRF_SUCCESS);
 
       int payload_len = strlen(payload);
 
@@ -110,7 +110,7 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
         response_len++;
       }
 
-      dbg_log_raw("\r\nResponse Length: %d\r\n", response_len);
+      dbg_log_raw("Response Length: %d\r\n", response_len);
 
       sb_add_range(&(result[i].result), response, 0, response_len);
     }
