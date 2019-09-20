@@ -46,6 +46,9 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 	  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
 	  $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
 	  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
+		$(SDK_ROOT)/components/libraries/uart/retarget.c \
+		$(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
+		$(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
 	  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
 	  $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
 	  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
@@ -79,6 +82,12 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/log \
   $(SDK_ROOT)/components/libraries/memobj \
 	$(SDK_ROOT)/components/libraries/mem_manager/ \
+	$(SDK_ROOT)/components/libraries/uart \
+	$(SDK_ROOT)/components/libraries/fifo \
+	$(SDK_ROOT)/components/libraries/balloc \
+  $(SDK_ROOT)/components/libraries/ringbuf \
+  $(SDK_ROOT)/modules/nrfx/hal \
+  $(SDK_ROOT)/components/libraries/bsp \
   $(SDK_ROOT)/components \
   $(SDK_ROOT)/modules/nrfx/mdk \
   $(SDK_ROOT)/components/libraries/strerror \

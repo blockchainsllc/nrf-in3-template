@@ -26,7 +26,7 @@ int main() {
   in3_client->transport    = transport_uart; // use curl to handle the requests
   in3_client->requestCount = 1;         // number of requests to send
   in3_client->chainId      = 0x1;
-  in3_client->proof        = PROOF_FULL;
+  in3_client->proof        = PROOF_NONE;
 
   in3_log_set_level(LOG_TRACE);
 
