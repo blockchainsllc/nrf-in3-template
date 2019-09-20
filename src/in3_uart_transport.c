@@ -102,6 +102,8 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
         while(app_uart_put(payload[j]) != NRF_SUCCESS);
       }
 
+      while(app_uart_put('\0') != NRF_SUCCESS);
+
       //read the response
       int response_len = 0;
 
