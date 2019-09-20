@@ -18,10 +18,10 @@
 
 #include <in3_uart_transport.h>
 
-#define RX_PIN_NUMBER NRF_GPIO_PIN_MAP(0,22)
-#define TX_PIN_NUMBER NRF_GPIO_PIN_MAP(0,20)
-#define RTS_PIN_NUMBER NRF_GPIO_PIN_MAP(0,13)
-#define CTS_PIN_NUMBER NRF_GPIO_PIN_MAP(0,15)
+#define RX_PIN_NUMBER NRF_GPIO_PIN_MAP(0,31)
+#define TX_PIN_NUMBER NRF_GPIO_PIN_MAP(0,29)
+#define RTS_PIN_NUMBER NRF_GPIO_PIN_MAP(1,13)
+#define CTS_PIN_NUMBER NRF_GPIO_PIN_MAP(1,15)
 
 #define MAX_RESPONSE_LEN 65536
 
@@ -91,31 +91,35 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
       int url_len = strlen(urls[i]);
 
       for (int j=0; j<url_len; j++) {
-        while(app_uart_put(urls[i][j]) != NRF_SUCCESS);
+        while (app_uart_put(urls[i][j]) != NRF_SUCCESS);
       }
 
-      while(app_uart_put(';') != NRF_SUCCESS);
+      while (app_uart_put(';') != NRF_SUCCESS);
 
       int payload_len = strlen(payload);
 
       for (int j=0; j<payload_len; j++) {
-        while(app_uart_put(payload[j]) != NRF_SUCCESS);
+        while (app_uart_put(payload[j]) != NRF_SUCCESS);
       }
 
-      while(app_uart_put('\0') != NRF_SUCCESS);
+      while (app_uart_put('\0') != NRF_SUCCESS);
 
       //read the response
       int response_len = 0;
 
-      while(!flag_response_complete) {
-        while(app_uart_get(&response[response_len]) != NRF_SUCCESS);
-        if(response[response_len] == '\0') {\
+      while (!flag_response_complete) {
+        while (app_uart_get(&response[response_len]) != NRF_SUCCESS);
+        if (response[response_len] == '\0') {\
           flag_response_complete = 1;
+        }
+        else if (response_len > MAX_RESPONSE_LEN) {
+          dbg_log("Exceeded the maximium length of expected response.");
+          exit(-1);
         }
         response_len++;
       }
 
-      dbg_log_raw("Response Length: %d\r\n", response_len);
+      dbg_log("Response Length: %d\r\n", response_len);
 
       sb_add_range(&(result[i].result), response, 0, response_len);
     }
