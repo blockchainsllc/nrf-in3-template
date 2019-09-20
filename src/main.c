@@ -19,14 +19,16 @@ int main() {
   // register a chain-verifier for full Ethereum-Support
   in3_register_eth_full();
 
+  transport_init();
+
   // create new incubed client
   in3_t* in3_client = in3_new();
 
   // set your config
-  in3_client->transport    = transport_uart; // use curl to handle the requests
+  in3_client->transport    = transport_uart; // use uart to handle the requests
   in3_client->requestCount = 1;         // number of requests to send
   in3_client->chainId      = 0x1;
-  in3_client->proof        = PROOF_NONE;
+  in3_client->proof        = PROOF_FULL;
 
   in3_log_set_level(LOG_TRACE);
 

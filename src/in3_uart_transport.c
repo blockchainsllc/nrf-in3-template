@@ -16,6 +16,8 @@
 #include <debug.h>
 #include "client.h"
 
+#include <in3_uart_transport.h>
+
 #define RX_PIN_NUMBER NRF_GPIO_PIN_MAP(0,22)
 #define TX_PIN_NUMBER NRF_GPIO_PIN_MAP(0,20)
 #define RTS_PIN_NUMBER NRF_GPIO_PIN_MAP(0,13)
@@ -48,37 +50,38 @@ void uart_error_handle(app_uart_evt_t * p_event)
 /* When UART is used for communication with the host do not use flow control.*/
 #define UART_HWFC APP_UART_FLOW_CONTROL_DISABLED
 
+void transport_init() {
+  uint32_t err_code;
+
+  const app_uart_comm_params_t comm_params =
+    {
+        RX_PIN_NUMBER,
+        TX_PIN_NUMBER,
+        RTS_PIN_NUMBER,
+        CTS_PIN_NUMBER,
+        UART_HWFC,
+        false,
+#if defined (UART_PRESENT)
+        NRF_UART_BAUDRATE_115200
+#else
+        NRF_UARTE_BAUDRATE_115200
+#endif
+    };
+
+  APP_UART_FIFO_INIT(&comm_params,
+                       UART_RX_BUF_SIZE,
+                       UART_TX_BUF_SIZE,
+                       uart_error_handle,
+                       APP_IRQ_PRIORITY_LOWEST,
+                       err_code);
+
+  APP_ERROR_CHECK(err_code);
+}
+
 /**
  * @brief Function for main application entry.
  */
 in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response_t *result) {
-    uint32_t err_code;
-
-    bsp_board_init(BSP_INIT_LEDS);
-
-    const app_uart_comm_params_t comm_params =
-      {
-          RX_PIN_NUMBER,
-          TX_PIN_NUMBER,
-          RTS_PIN_NUMBER,
-          CTS_PIN_NUMBER,
-          UART_HWFC,
-          false,
-#if defined (UART_PRESENT)
-          NRF_UART_BAUDRATE_115200
-#else
-          NRF_UARTE_BAUDRATE_115200
-#endif
-      };
-
-    APP_UART_FIFO_INIT(&comm_params,
-                         UART_RX_BUF_SIZE,
-                         UART_TX_BUF_SIZE,
-                         uart_error_handle,
-                         APP_IRQ_PRIORITY_LOWEST,
-                         err_code);
-
-    APP_ERROR_CHECK(err_code);
 
     uint8_t response[MAX_RESPONSE_LEN];
     int flag_response_complete = 0;
