@@ -15,7 +15,9 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 # Source files common to all targets
 SRC_FILES += \
 	$(wildcard $(SRC_DIR)/*.c) \
-	$(wildcard $(SRC_DIR)/transport/**/*.c) \
+	$(wildcard $(SRC_DIR)/transport/ble/*.c) \
+	$(wildcard $(SRC_DIR)/transport/uart/*.c) \
+	$(wildcard $(SRC_DIR)/transport/mock/*.c) \
 	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
@@ -51,7 +53,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
-	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c
+	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
 	$(SDK_ROOT)/components/libraries/bsp/bsp.c \
 	$(SDK_ROOT)/components/libraries/bsp/bsp_btn_ble.c \
 	$(SDK_ROOT)/components/libraries/bsp/bsp_nfc.c \
@@ -198,7 +200,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(SDK_ROOT)/components/libraries/ringbuf \
   $(SDK_ROOT)/modules/nrfx \
-  $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd \
   $(SDK_ROOT)/components/libraries/log/src \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/components/libraries/bsp \
@@ -345,7 +346,11 @@ OPT = -Os -g3
 # C flags common to all targets
 CFLAGS += $(OPT)
 CFLAGS += -DBOARD_PCA10059
-CFLAGS += -DBSP_DEFINES_ONLY
+CFLAGS += -DMBEDTLS_CONFIG_FILE=\"nrf_crypto_mbedtls_config.h\"
+CFLAGS += -DNRF_CRYPTO_MAX_INSTANCE_COUNT=1
+CFLAGS += -DNRF_SD_BLE_API_VERSION=6
+CFLAGS += -DS140
+CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DDEBUG
@@ -374,7 +379,6 @@ ASMFLAGS += -mcpu=cortex-m4
 ASMFLAGS += -mthumb -mabi=aapcs
 ASMFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 ASMFLAGS += -DBOARD_PCA10059
-ASMFLAGS += -DBSP_DEFINES_ONLY
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DDEBUG
 ASMFLAGS += -DDEBUG_NRF

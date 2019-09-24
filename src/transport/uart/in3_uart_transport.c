@@ -50,7 +50,7 @@ void uart_error_handle(app_uart_evt_t * p_event)
 /* When UART is used for communication with the host do not use flow control.*/
 #define UART_HWFC APP_UART_FLOW_CONTROL_DISABLED
 
-void transport_init() {
+void transport_uart_init() {
   uint32_t err_code;
 
   const app_uart_comm_params_t comm_params =

@@ -57,6 +57,8 @@
 
 #include "in3_ble_transport.h"
 
+//BSP defines for USB Dongle
+
 
 #define DEAD_BEEF   0xDEADBEEF /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 #define DEVICE_NAME "NRF_IN3"
@@ -128,7 +130,7 @@ static void nfc_pairing_init()
 
 /**@brief Function for application main entry.
  */
-int transport_ble_init(void)
+void transport_ble_init(void)
 {
     // Initialize.
     log_init();
