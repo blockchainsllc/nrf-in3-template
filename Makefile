@@ -12,51 +12,45 @@ LIB_DIR := $(PROJ_DIR)/lib
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/ecc_gcc_nrf52.ld
 
-	# Source files common to all targets
-	SRC_FILES += \
-		$(wildcard $(SRC_DIR)/*.c) \
-		$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
-		$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
-		$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
-		$(wildcard $(SRC_DIR)/in3/third-party/crypto/*.c) \
-		$(wildcard $(SRC_DIR)/in3/third-party/tommath/*.c) \
-		$(wildcard $(SRC_DIR)/in3/verifier/eth1/nano/*.c) \
-		$(wildcard $(SRC_DIR)/in3/verifier/eth1/basic/*.c) \
-		$(wildcard $(SRC_DIR)/in3/verifier/eth1/evm/*.c) \
-		$(wildcard $(SRC_DIR)/in3/verifier/eth1/full/*.c) \
-	  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
-	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
-	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
-	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_uart.c \
-	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
-	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
-	  $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
-		$(SDK_ROOT)/components/libraries/mem_manager/mem_manager.c \
-	  $(SDK_ROOT)/components/boards/boards.c \
-	  $(SDK_ROOT)/components/libraries/util/app_error.c \
-	  $(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
-	  $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
-	  $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
-	  $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
-	  $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
-	  $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
-	  $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
-	  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
-	  $(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
-	  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
-	  $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
-	  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
-		$(SDK_ROOT)/components/libraries/uart/retarget.c \
-		$(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
-		$(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
-	  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
-	  $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
-	  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
-	  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
-	  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
-		$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
-		$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
-		$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c
+# Source files common to all targets
+SRC_FILES += \
+	$(wildcard $(SRC_DIR)/*.c) \
+	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
+	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
+	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
+	$(wildcard $(SRC_DIR)/in3/third-party/crypto/*.c) \
+	$(wildcard $(SRC_DIR)/in3/third-party/tommath/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/nano/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/basic/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/evm/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/full/*.c) \
+  $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
+	$(SDK_ROOT)/components/libraries/mem_manager/mem_manager.c \
+  $(SDK_ROOT)/components/boards/boards.c \
+  $(SDK_ROOT)/components/libraries/util/app_error.c \
+  $(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
+  $(SDK_ROOT)/components/libraries/util/app_error_weak.c \
+  $(SDK_ROOT)/components/libraries/util/app_util_platform.c \
+  $(SDK_ROOT)/components/libraries/util/nrf_assert.c \
+  $(SDK_ROOT)/components/libraries/atomic/nrf_atomic.c \
+  $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
+  $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
+  $(SDK_ROOT)/components/libraries/memobj/nrf_memobj.c \
+  $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
+  $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_uart.c \
+	$(SDK_ROOT)/components/libraries/uart/retarget.c \
+	$(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
+	$(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
+  $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
+  $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
+	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
+	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
+	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c
 
 
 # Include folders common to all targets
@@ -108,6 +102,9 @@ INC_FOLDERS += \
 # Libraries common to all targets
 LIB_FILES += \
   $(SDK_ROOT)/external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.12.a \
+	$(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_2.0.7.a \
+	$(SDK_ROOT)/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a \
+	$(SDK_ROOT)/components/nfc/t2t_lib/nfc_t2t_lib_gcc.a \
 
 # Optimization flags
 OPT = -Os -g3
