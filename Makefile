@@ -10,7 +10,7 @@ INC_DIR := $(PROJ_DIR)/include
 LIB_DIR := $(PROJ_DIR)/lib
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
-  LINKER_SCRIPT  := $(SRC_DIR)/nrf_in3.ld
+  LINKER_SCRIPT  := ./src/ecc_gcc_nrf52.ld
 
 # Source files common to all targets
 SRC_FILES += \
