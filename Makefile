@@ -15,7 +15,6 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 # Source files common to all targets
 SRC_FILES += \
 	$(wildcard $(SRC_DIR)/*.c) \
-	$(wildcard $(SRC_DIR)/transport/**/*.c) \
 	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
@@ -163,9 +162,7 @@ SRC_FILES += \
 # Include folders common to all targets
 INC_FOLDERS += \
   $(SDK_ROOT)/external/fprintf \
-  $(INC_DIR)/transport/ble \
-	$(INC_DIR)/transport/uart \
-	$(INC_DIR)/transport/mock \
+  $(INC_DIR) \
 	$(SRC_DIR)/in3/api/eth1 \
 	$(SRC_DIR)/in3/core/client \
 	$(SRC_DIR)/in3/core/util \
