@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <debug.h>
 #include <in3_uart_transport.h>
+#include <in3_ble_transport.h>
 #include <stdio.h>
 #if defined(_WIN32) || defined(WIN32)
 #include <windows.h>
@@ -19,13 +20,13 @@ int main() {
   // register a chain-verifier for full Ethereum-Support
   in3_register_eth_full();
 
-  transport_init();
+  transport_ble_init();
 
   // create new incubed client
   in3_t* in3_client = in3_new();
 
   // set your config
-  in3_client->transport    = transport_uart; // use uart to handle the requests
+  in3_client->transport    = transport_ble; // use uart to handle the requests
   in3_client->requestCount = 1;         // number of requests to send
   in3_client->chainId      = 0x1;
   in3_client->proof        = PROOF_FULL;
