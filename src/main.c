@@ -19,7 +19,7 @@ int main() {
   // register a chain-verifier for full Ethereum-Support
   in3_register_eth_full();
 
-  transport_uart_init();
+  transport_init();
 
   // create new incubed client
   in3_t* in3_client = in3_new();
