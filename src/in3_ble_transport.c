@@ -58,7 +58,7 @@
 #define MAX_RESPONSE_LEN 65536
 #define MAX_REQUEST_LEN 2048
 // 50*100 milliseconds
-#define BLE_IN3_TIMEOUT 50
+#define BLE_IN3_TIMEOUT 600
 
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);                                   /**< BLE NUS service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
@@ -69,6 +69,8 @@ static bool ble_connected = false;
 static uint8_t * response;
 static int response_len = 0;
 static bool response_received = false;
+static bool start_storing_response = false;
+static int tx_received_length = 0;
 
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
 static uint16_t   m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -161,9 +163,26 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
         NRF_LOG_DEBUG("Received data from BLE NUS. Writing data on UART.");
         // NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
 
-        response_len = p_evt->params.rx_data.length;
-        response = p_evt->params.rx_data.p_data;
-        response_received = true;
+        if (start_storing_response) {
+          memcpy(response + response_len, p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
+          response_len += p_evt->params.rx_data.length;
+          dbg_log("Got a chunk of response, total response length: %d\n", response_len);
+        }
+        else if (!start_storing_response && (strstr(p_evt->params.rx_data.p_data, "res:") != NULL)) {
+          //do this in a better way
+          char length_buffer[20];
+          memcpy(length_buffer, &(p_evt->params.rx_data.p_data[4]), p_evt->params.rx_data.length - 4);
+          tx_received_length = atoi(length_buffer);
+          start_storing_response = true;
+          dbg_log("Incoming response of length: %d", tx_received_length);
+        }
+
+        if (response_len == tx_received_length) {
+          start_storing_response = false;
+          tx_received_length = 0;
+          response_received = true;
+          dbg_log("Response Received\n");
+        }
         // do
         // {
         //     err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
@@ -591,7 +610,7 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
     memcpy(ble_payload + url_len, ";", 1);
     memcpy(ble_payload + url_len + 1, payload, payload_len);
 
-    dbg_log("BLE_PAYLOAD: %s", ble_payload);
+    response_received = false;
 
     ret_code = ble_nus_data_send(&m_nus, ble_payload, &total_len, m_conn_handle);
 
@@ -605,9 +624,13 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
 
       if (timeout >= BLE_IN3_TIMEOUT) {
         dbg_log("REQUEST TIMED OUT");
+        start_storing_response = false;
+        tx_received_length = 0;
+        memset(response, 0, response_len);
+        response_len = 0;
         return -1;
       }
-      
+
       timeout = timeout + 1;
       nrf_delay_ms(100);
     }
