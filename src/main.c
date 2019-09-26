@@ -6,6 +6,7 @@
 #include <debug.h>
 #include <in3_uart_transport.h>
 #include <in3_ble_transport.h>
+#include "nrf_delay.h"
 #include <stdio.h>
 #if defined(_WIN32) || defined(WIN32)
 #include <windows.h>
@@ -34,13 +35,17 @@ int main() {
   in3_log_set_level(LOG_TRACE);
 
   // use a ethereum-api instead of pure JSON-RPC-Requests
-  eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
+  while(true) {
+    eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
 
-  if (!block)
-    dbg_log("Could not find the Block: %s\n", eth_last_error());
-  else {
-    dbg_log("Number of verified transactions in block: %d\n", block->tx_count);
-    free(block);
+    if (!block)
+      dbg_log("Could not find the Block: %s\n", eth_last_error());
+    else {
+      dbg_log("Number of verified transactions in block: %d\n", block->tx_count);
+      free(block);
+    }
+
+    nrf_delay_ms(3000);
   }
 
   // define a address (20byte)

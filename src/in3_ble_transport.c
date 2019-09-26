@@ -1,6 +1,7 @@
 #include "in3_ble_transport.h"
 #include <stdint.h>
 #include <string.h>
+#include "debug.h"
 #include "nordic_common.h"
 #include "nrf.h"
 #include "ble_hci.h"
@@ -14,17 +15,9 @@
 #include "nrf_ble_qwr.h"
 #include "app_timer.h"
 #include "ble_nus.h"
-#include "app_uart.h"
 #include "app_util_platform.h"
 #include "bsp_btn_ble.h"
 #include "nrf_pwr_mgmt.h"
-
-#if defined (UART_PRESENT)
-#include "nrf_uart.h"
-#endif
-#if defined (UARTE_PRESENT)
-#include "nrf_uarte.h"
-#endif
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -62,12 +55,17 @@
 #define CTS_PIN_NUMBER NRF_GPIO_PIN_MAP(1,15)
 
 #define MAX_RESPONSE_LEN 65536
-
+#define MAX_REQUEST_LEN 2048
 
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);                                   /**< BLE NUS service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                             /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                                 /**< Advertising module instance. */
+
+static bool ble_connected = false;
+static uint8_t * response;
+static int response_len = 0;
+static bool response_received = false;
 
 static uint16_t   m_conn_handle          = BLE_CONN_HANDLE_INVALID;                 /**< Handle of the current connection. */
 static uint16_t   m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
@@ -157,27 +155,25 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
 
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
-        uint32_t err_code;
-
         NRF_LOG_DEBUG("Received data from BLE NUS. Writing data on UART.");
-        NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
+        // NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
 
-        for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
-        {
-            do
-            {
-                err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
-                if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
-                {
-                    NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
-                    APP_ERROR_CHECK(err_code);
-                }
-            } while (err_code == NRF_ERROR_BUSY);
-        }
-        if (p_evt->params.rx_data.p_data[p_evt->params.rx_data.length - 1] == '\r')
-        {
-            while (app_uart_put('\n') == NRF_ERROR_BUSY);
-        }
+        response_len = p_evt->params.rx_data.length;
+        response = p_evt->params.rx_data.p_data;
+        response_received = true;
+        // do
+        // {
+        //     err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
+        //     if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
+        //     {
+        //         NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
+        //         APP_ERROR_CHECK(err_code);
+        //     }
+        // } while (err_code == NRF_ERROR_BUSY);
+        // if (p_evt->params.rx_data.p_data[p_evt->params.rx_data.length - 1] == '\r')
+        // {
+        //     while (app_uart_put('\n') == NRF_ERROR_BUSY);
+        // }
     }
 
 }
@@ -322,6 +318,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_CONNECTED:
             NRF_LOG_INFO("Connected");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            ble_connected = true;
             APP_ERROR_CHECK(err_code);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
@@ -330,6 +327,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
         case BLE_GAP_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected");
+            ble_connected = false;
             // LED indication will be changed when advertising starts.
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
             break;
@@ -470,98 +468,6 @@ void bsp_event_handler(bsp_event_t event)
 }
 
 
-/**@brief   Function for handling app_uart events.
- *
- * @details This function will receive a single character from the app_uart module and append it to
- *          a string. The string will be be sent over BLE when the last character received was a
- *          'new line' '\n' (hex 0x0A) or if the string has reached the maximum data length.
- */
-/**@snippet [Handling the data received over UART] */
-void uart_event_handle(app_uart_evt_t * p_event)
-{
-    static uint8_t data_array[BLE_NUS_MAX_DATA_LEN];
-    static uint8_t index = 0;
-    uint32_t       err_code;
-
-    switch (p_event->evt_type)
-    {
-        case APP_UART_DATA_READY:
-            UNUSED_VARIABLE(app_uart_get(&data_array[index]));
-            index++;
-
-            if ((data_array[index - 1] == '\n') ||
-                (data_array[index - 1] == '\r') ||
-                (index >= m_ble_nus_max_data_len))
-            {
-                if (index > 1)
-                {
-                    NRF_LOG_DEBUG("Ready to send data over BLE NUS");
-                    NRF_LOG_HEXDUMP_DEBUG(data_array, index);
-
-                    do
-                    {
-                        uint16_t length = (uint16_t)index;
-                        err_code = ble_nus_data_send(&m_nus, data_array, &length, m_conn_handle);
-                        if ((err_code != NRF_ERROR_INVALID_STATE) &&
-                            (err_code != NRF_ERROR_RESOURCES) &&
-                            (err_code != NRF_ERROR_NOT_FOUND))
-                        {
-                            APP_ERROR_CHECK(err_code);
-                        }
-                    } while (err_code == NRF_ERROR_RESOURCES);
-                }
-
-                index = 0;
-            }
-            break;
-
-        case APP_UART_COMMUNICATION_ERROR:
-            APP_ERROR_HANDLER(p_event->data.error_communication);
-            break;
-
-        case APP_UART_FIFO_ERROR:
-            APP_ERROR_HANDLER(p_event->data.error_code);
-            break;
-
-        default:
-            break;
-    }
-}
-/**@snippet [Handling the data received over UART] */
-
-
-/**@brief  Function for initializing the UART module.
- */
-/**@snippet [UART Initialization] */
-static void uart_init(void)
-{
-    uint32_t                     err_code;
-    app_uart_comm_params_t const comm_params =
-    {
-        .rx_pin_no    = RX_PIN_NUMBER,
-        .tx_pin_no    = TX_PIN_NUMBER,
-        .rts_pin_no   = RTS_PIN_NUMBER,
-        .cts_pin_no   = CTS_PIN_NUMBER,
-        .flow_control = APP_UART_FLOW_CONTROL_DISABLED,
-        .use_parity   = false,
-#if defined (UART_PRESENT)
-        .baud_rate    = NRF_UART_BAUDRATE_115200
-#else
-        .baud_rate    = NRF_UARTE_BAUDRATE_115200
-#endif
-    };
-
-    APP_UART_FIFO_INIT(&comm_params,
-                       UART_RX_BUF_SIZE,
-                       UART_TX_BUF_SIZE,
-                       uart_event_handle,
-                       APP_IRQ_PRIORITY_LOWEST,
-                       err_code);
-    APP_ERROR_CHECK(err_code);
-}
-/**@snippet [UART Initialization] */
-
-
 /**@brief Function for initializing the Advertising functionality.
  */
 static void advertising_init(void)
@@ -628,20 +534,6 @@ static void power_management_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
-/**@brief Function for handling the idle state (main loop).
- *
- * @details If there is no pending log operation, then sleep until next the next event occurs.
- */
-static void idle_state_handle(void)
-{
-    if (NRF_LOG_PROCESS() == false)
-    {
-        nrf_pwr_mgmt_run();
-    }
-}
-
-
 /**@brief Function for starting advertising.
  */
 static void advertising_start(void)
@@ -657,8 +549,6 @@ void transport_ble_init(void)
 {
     bool erase_bonds;
 
-    // Initialize.
-    uart_init();
     log_init();
     timers_init();
     buttons_leds_init(&erase_bonds);
@@ -670,19 +560,53 @@ void transport_ble_init(void)
     advertising_init();
     conn_params_init();
 
-    // Start execution.
-    printf("\r\nUART started.\r\n");
     NRF_LOG_INFO("Debug logging for UART over RTT started.");
     advertising_start();
-
-    // Enter main loop.
-    for (;;)
-    {
-        idle_state_handle();
-    }
 }
 
 in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t *result) {
+  in3_ret_t ret_code;
+
+  if (!ble_connected) {
+    return -1;
+  }
+
+  uint8_t ble_payload[MAX_REQUEST_LEN];
+  uint16_t url_len = 0;
+  uint16_t payload_len = 0;
+  uint16_t total_len = 0;
+
+  //TODO: Asynchronize the requests if possible, because bluetooth supports it.
+  for (int i=0; i<urls_len; i++) {
+
+    url_len = strlen(urls[i]);
+    payload_len = strlen(payload);
+    total_len = url_len + payload_len + 1;
+
+    memcpy(ble_payload, urls[i], url_len);
+    memcpy(ble_payload + url_len, ";", 1);
+    memcpy(ble_payload + url_len + 1, payload, payload_len);
+
+    dbg_log("BLE_PAYLOAD: %s", ble_payload);
+
+    ret_code = ble_nus_data_send(&m_nus, urls[i], &total_len, m_conn_handle);
+
+    if (ret_code != NRF_SUCCESS) {
+      return -1;
+    }
+
+    memset(ble_payload, 0, MAX_REQUEST_LEN);
+
+    //TODO: give timeout
+    while(!response_received);
+
+    if(response_received) {
+      response_received = false;
+    }
+
+    sb_add_range(&(result[i].result), response, 0, response_len);
+  }
+
   return 0;
 }
 
