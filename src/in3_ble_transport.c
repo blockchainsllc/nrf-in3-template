@@ -180,7 +180,6 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
         if (response_len == tx_received_length) {
           start_storing_response = false;
           tx_received_length = 0;
-          response_len = 0;
           response_received = true;
           dbg_log("Response Received\n");
         }
@@ -585,6 +584,14 @@ void transport_ble_init(void)
     advertising_start();
 }
 
+int transport_connected() {
+  if (ble_connected) {
+    return 1;
+  }
+
+  return 0;
+}
+
 in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t *result) {
   uint32_t ble_ret;
   int timeout = 0;
@@ -598,6 +605,7 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
   uint16_t url_len = 0;
   uint16_t payload_len = 0;
   uint16_t total_len = 0;
+  uint16_t transmit_message_len = 244;
 
   //TODO: Asynchronize the requests if possible, because bluetooth supports it.
   for (int i=0; i<urls_len; i++) {
@@ -611,8 +619,15 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
     memcpy(ble_payload + url_len + 1, payload, payload_len);
 
     response_received = false;
+    response_len = 0;
+    transmit_message_len = 244;
 
-    ble_ret = ble_nus_data_send(&m_nus, ble_payload, &total_len, m_conn_handle);
+    for(int j=0; j<total_len; j+=244) {
+      if ((total_len - j) < 244) {
+        transmit_message_len = total_len - j;
+      }
+      ble_ret = ble_nus_data_send(&m_nus, ble_payload + j, &(transmit_message_len), m_conn_handle);
+    }
 
     if (ble_ret != NRF_SUCCESS) {
       dbg_log("Could not relay the payload via bluetooth, Error Code: 0x%x\n", ble_ret);
@@ -629,7 +644,6 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
         start_storing_response = false;
         tx_received_length = 0;
         memset(response, 0, response_len);
-        response_len = 0;
         return IN3_ETRANS;
       }
 
@@ -638,12 +652,14 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
     }
 
     if(response_received) {
+      dbg_log("Response Length: %d\n", response_len);
       response_received = false;
       sb_add_range(&(result[i].result), response, 0, response_len);
+      response_len = 0;
       memset(response, 0, response_len);
     }
   }
-
+  dbg_log("Sending OK\n");
   return IN3_OK;
 }
 
