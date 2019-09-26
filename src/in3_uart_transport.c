@@ -114,7 +114,7 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
         }
         else if (response_len > MAX_RESPONSE_LEN) {
           dbg_log("Exceeded the maximium length of expected response.");
-          exit(-1);
+          return IN3_ETRANS;
         }
         response_len++;
       }
@@ -124,5 +124,5 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
       sb_add_range(&(result[i].result), response, 0, response_len);
     }
 
-    return 0;
+    return IN3_OK;
 }

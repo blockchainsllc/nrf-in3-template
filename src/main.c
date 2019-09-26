@@ -45,30 +45,31 @@ int main() {
       free(block);
     }
 
+
+    // define a address (20byte)
+    address_t contract;
+
+    // copy the hexcoded string into this address
+    hex2byte_arr("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
+
+    // ask for the number of servers registered
+    json_ctx_t* response = eth_call_fn(in3_client, contract, "totalServers():uint256");
+    if (!response) {
+      dbg_log("Could not get the response: %s\n", eth_last_error());
+      return -1;
+    }
+
+    // convert the response to a uint32_t,
+    uint32_t number_of_servers = d_int(response->result);
+
+    // clean up resources
+    free_json(response);
+
+    // output
+    dbg_log("Found %u servers registered : \n", number_of_servers);
+
     nrf_delay_ms(3000);
   }
-
-  // define a address (20byte)
-  address_t contract;
-
-  // copy the hexcoded string into this address
-  hex2byte_arr("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
-
-  // ask for the number of servers registered
-  json_ctx_t* response = eth_call_fn(in3_client, contract, "totalServers():uint256");
-  if (!response) {
-    dbg_log("Could not get the response: %s", eth_last_error());
-    return -1;
-  }
-
-  // convert the response to a uint32_t,
-  uint32_t number_of_servers = d_int(response->result);
-
-  // clean up resources
-  free_json(response);
-
-  // output
-  dbg_log("Found %u servers registered : \n", number_of_servers);
 
   // clean up
   in3_free(in3_client);

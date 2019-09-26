@@ -66,7 +66,7 @@ NRF_BLE_QWR_DEF(m_qwr);                                                         
 BLE_ADVERTISING_DEF(m_advertising);                                                 /**< Advertising module instance. */
 
 static bool ble_connected = false;
-static uint8_t * response;
+static uint8_t response[MAX_RESPONSE_LEN];
 static int response_len = 0;
 static bool response_received = false;
 static bool start_storing_response = false;
@@ -174,12 +174,13 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
           memcpy(length_buffer, &(p_evt->params.rx_data.p_data[4]), p_evt->params.rx_data.length - 4);
           tx_received_length = atoi(length_buffer);
           start_storing_response = true;
-          dbg_log("Incoming response of length: %d", tx_received_length);
+          dbg_log("Incoming response of length: %d\n", tx_received_length);
         }
 
         if (response_len == tx_received_length) {
           start_storing_response = false;
           tx_received_length = 0;
+          response_len = 0;
           response_received = true;
           dbg_log("Response Received\n");
         }
@@ -581,17 +582,16 @@ void transport_ble_init(void)
     services_init();
     advertising_init();
     conn_params_init();
-
-    NRF_LOG_INFO("Debug logging for UART over RTT started.");
     advertising_start();
 }
 
 in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t *result) {
-  in3_ret_t ret_code;
+  uint32_t ble_ret;
   int timeout = 0;
 
   if (!ble_connected) {
-    return -1;
+    dbg_log ("Not connected to any device!\n");
+    return IN3_ETRANS;
   }
 
   uint8_t ble_payload[MAX_REQUEST_LEN];
@@ -612,10 +612,12 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
 
     response_received = false;
 
-    ret_code = ble_nus_data_send(&m_nus, ble_payload, &total_len, m_conn_handle);
+    ble_ret = ble_nus_data_send(&m_nus, ble_payload, &total_len, m_conn_handle);
 
-    if (ret_code != NRF_SUCCESS) {
-      return -1;
+    if (ble_ret != NRF_SUCCESS) {
+      dbg_log("Could not relay the payload via bluetooth, Error Code: 0x%x\n", ble_ret);
+      memset(ble_payload, 0, MAX_REQUEST_LEN);
+      return IN3_ETRANS;
     }
 
     memset(ble_payload, 0, MAX_REQUEST_LEN);
@@ -623,12 +625,12 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
     while(!response_received) {
 
       if (timeout >= BLE_IN3_TIMEOUT) {
-        dbg_log("REQUEST TIMED OUT");
+        dbg_log("REQUEST TIMED OUT\n");
         start_storing_response = false;
         tx_received_length = 0;
         memset(response, 0, response_len);
         response_len = 0;
-        return -1;
+        return IN3_ETRANS;
       }
 
       timeout = timeout + 1;
@@ -637,12 +639,12 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
 
     if(response_received) {
       response_received = false;
+      sb_add_range(&(result[i].result), response, 0, response_len);
+      memset(response, 0, response_len);
     }
-
-    sb_add_range(&(result[i].result), response, 0, response_len);
   }
 
-  return 0;
+  return IN3_OK;
 }
 
 
