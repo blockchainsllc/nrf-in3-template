@@ -15,6 +15,7 @@
 #include "nrf_ble_qwr.h"
 #include "app_timer.h"
 #include "ble_nus.h"
+#include "nrf_delay.h"
 #include "app_util_platform.h"
 #include "bsp_btn_ble.h"
 #include "nrf_pwr_mgmt.h"
@@ -56,6 +57,8 @@
 
 #define MAX_RESPONSE_LEN 65536
 #define MAX_REQUEST_LEN 2048
+// 50*100 milliseconds
+#define BLE_IN3_TIMEOUT 50
 
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT);                                   /**< BLE NUS service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                                                           /**< GATT module instance. */
@@ -566,6 +569,7 @@ void transport_ble_init(void)
 
 in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t *result) {
   in3_ret_t ret_code;
+  int timeout = 0;
 
   if (!ble_connected) {
     return -1;
@@ -589,7 +593,7 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
 
     dbg_log("BLE_PAYLOAD: %s", ble_payload);
 
-    ret_code = ble_nus_data_send(&m_nus, urls[i], &total_len, m_conn_handle);
+    ret_code = ble_nus_data_send(&m_nus, ble_payload, &total_len, m_conn_handle);
 
     if (ret_code != NRF_SUCCESS) {
       return -1;
@@ -597,8 +601,16 @@ in3_ret_t transport_ble(char **urls, int urls_len, char *payload, in3_response_t
 
     memset(ble_payload, 0, MAX_REQUEST_LEN);
 
-    //TODO: give timeout
-    while(!response_received);
+    while(!response_received) {
+
+      if (timeout >= BLE_IN3_TIMEOUT) {
+        dbg_log("REQUEST TIMED OUT");
+        return -1;
+      }
+      
+      timeout = timeout + 1;
+      nrf_delay_ms(100);
+    }
 
     if(response_received) {
       response_received = false;
