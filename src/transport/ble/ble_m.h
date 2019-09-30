@@ -47,6 +47,7 @@
 #define BLE_M_H__
 
 #include "ble_advertising.h"
+#include <client.h>   // the core client
 
 /**@brief Function for initializing the advertising functionality. */
 void advertising_init(void);
@@ -81,7 +82,7 @@ void gatt_init(void);
 
 /**@brief Function for initializing the Queued Write module.
  */
-void qwr_init(void);
+void services_init(void);
 
 
 /**@brief Function for terminating the BLE connection. */
@@ -100,5 +101,11 @@ void ble_set_device_name(char const * device_name);
  * @return Pointer to the advertising module instance.
  */
 ble_advertising_t * ble_adv_instance_ptr_get(void);
+
+in3_ret_t _transport_ble(char **urls, int urls_len, char *payload, in3_response_t *result);
+
+int _transport_connected();
+
+void buttons_leds_init(bool * p_erase_bonds);
 
 #endif // BLE_M_H__

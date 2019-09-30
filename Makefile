@@ -15,6 +15,9 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 # Source files common to all targets
 SRC_FILES += \
 	$(wildcard $(SRC_DIR)/*.c) \
+	$(wildcard $(SRC_DIR)/transport/ble/*.c) \
+	$(wildcard $(SRC_DIR)/transport/mock/*.c) \
+	$(wildcard $(SRC_DIR)/transport/uart/*.c) \
 	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
@@ -170,7 +173,9 @@ SRC_FILES += \
 # Include folders common to all targets
 INC_FOLDERS += \
   $(SDK_ROOT)/external/fprintf \
-  $(INC_DIR) \
+  $(SRC_DIR)/transport/ble \
+	$(SRC_DIR)/transport/mock \
+	$(SRC_DIR)/transport/uart \
 	$(SRC_DIR)/in3/api/eth1 \
 	$(SRC_DIR)/in3/core/client \
 	$(SRC_DIR)/in3/core/util \
@@ -339,6 +344,9 @@ INC_FOLDERS += \
 # Libraries common to all targets
 LIB_FILES += \
   $(SDK_ROOT)/external/nrf_cc310/lib/cortex-m4/hard-float/libnrf_cc310_0.9.12.a \
+	$(SDK_ROOT)/external/nrf_oberon/lib/cortex-m4/hard-float/liboberon_2.0.7.a \
+	$(SDK_ROOT)/external/micro-ecc/nrf52hf_armgcc/armgcc/micro_ecc_lib_nrf52.a \
+	$(SDK_ROOT)/components/nfc/t2t_lib/nfc_t2t_lib_gcc.a \
 
 # Optimization flags
 OPT = -Os -g3

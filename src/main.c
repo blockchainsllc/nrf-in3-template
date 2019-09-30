@@ -37,7 +37,7 @@ int main() {
 
   while(transport_connected() == 0);
 
-  nrf_delay_ms(1000);
+  nrf_delay_ms(5000);
 
   // use a ethereum-api instead of pure JSON-RPC-Requests
   eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
