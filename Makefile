@@ -82,7 +82,89 @@ SRC_FILES += \
 	$(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
 	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
-	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c
+	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
+  $(SDK_ROOT)/components/ble/ble_services/ble_nus/ble_nus.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
+  $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
+  $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
+	$(SDK_ROOT)/components/libraries/bsp/bsp_nfc.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_init.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng_mbedtls.c \
+	$(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_rng.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_nfct.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_rng.c \
+	$(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_timer.c \
+	$(SDK_ROOT)/components/libraries/crc16/crc16.c \
+	$(SDK_ROOT)/components/libraries/ecc/ecc.c \
+	$(SDK_ROOT)/components/libraries/fds/fds.c \
+	$(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
+	$(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage_sd.c \
+	$(SDK_ROOT)/components/libraries/queue/nrf_queue.c \
+	$(SDK_ROOT)/components/libraries/sensorsim/sensorsim.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_aead.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_aes.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_aes_shared.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecc.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdh.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdsa.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_eddsa.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_error.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_hash.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_hkdf.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_hmac.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_init.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_rng.c \
+	$(SDK_ROOT)/components/libraries/crypto/nrf_crypto_shared.c \
+	$(SDK_ROOT)/external/mbedtls/library/aes.c \
+	$(SDK_ROOT)/external/mbedtls/library/ctr_drbg.c \
+	$(SDK_ROOT)/components/ble/peer_manager/auth_status_tracker.c \
+	$(SDK_ROOT)/components/ble/peer_manager/gatt_cache_manager.c \
+	$(SDK_ROOT)/components/ble/peer_manager/gatts_cache_manager.c \
+	$(SDK_ROOT)/components/ble/peer_manager/id_manager.c \
+	$(SDK_ROOT)/components/ble/peer_manager/nrf_ble_lesc.c \
+	$(SDK_ROOT)/components/ble/peer_manager/peer_data_storage.c \
+	$(SDK_ROOT)/components/ble/peer_manager/peer_database.c \
+	$(SDK_ROOT)/components/ble/peer_manager/peer_id.c \
+	$(SDK_ROOT)/components/ble/peer_manager/peer_manager.c \
+	$(SDK_ROOT)/components/ble/peer_manager/peer_manager_handler.c \
+	$(SDK_ROOT)/components/ble/peer_manager/pm_buffer.c \
+	$(SDK_ROOT)/components/ble/peer_manager/security_dispatcher.c \
+	$(SDK_ROOT)/components/ble/peer_manager/security_manager.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_aes.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_aes_aead.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_chacha_poly_aead.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_ecc.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_ecdh.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_ecdsa.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_eddsa.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_hash.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_hmac.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_init.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_mutex.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_rng.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_shared.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/ac_rec/nfc_ac_rec.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_oob_advdata/nfc_ble_oob_advdata.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/common/nfc_ble_pair_common.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_lib/nfc_ble_pair_lib.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/ble_pair_msg/nfc_ble_pair_msg.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/ep_oob_rec/nfc_ep_oob_rec.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/hs_rec/nfc_hs_rec.c \
+	$(SDK_ROOT)/components/nfc/ndef/connection_handover/le_oob_rec/nfc_le_oob_rec.c \
+	$(SDK_ROOT)/components/nfc/ndef/generic/message/nfc_ndef_msg.c \
+	$(SDK_ROOT)/components/nfc/ndef/generic/record/nfc_ndef_record.c \
+	$(SDK_ROOT)/components/nfc/platform/nfc_platform.c \
+	$(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_chacha_poly_aead.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_ecc.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_ecdh.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_ecdsa.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_eddsa.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_hash.c \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon/oberon_backend_hmac.c \
 
 
 # Include folders common to all targets
@@ -235,6 +317,24 @@ INC_FOLDERS += \
 	$(SDK_ROOT)/components/libraries/usbd/class/hid/generic \
 	$(SDK_ROOT)/components/libraries/usbd/class/msc \
 	$(SDK_ROOT)/components/libraries/usbd/class/hid \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310 \
+	$(SDK_ROOT)/external/nrf_oberon \
+	$(SDK_ROOT)/external/nrf_oberon/include \
+	$(SDK_ROOT)/external/micro-ecc/micro-ecc \
+	$(SDK_ROOT)/components/libraries/crypto/backend/nrf_sw \
+	$(SDK_ROOT)/components/nfc/platform \
+	$(SDK_ROOT)/external/nrf_tls/mbedtls/nrf_crypto/config \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cifra \
+	$(SDK_ROOT)/components/libraries/stack_info \
+	$(SDK_ROOT)/components/libraries/crypto/backend/optiga \
+	$(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc \
+	../config \
+	$(SDK_ROOT)/external/mbedtls/include \
+	$(SDK_ROOT)/components/libraries/crypto/backend/cc310_bl \
+	$(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw \
+	$(SDK_ROOT)/components/libraries/sensorsim \
+	$(SDK_ROOT)/components/libraries/crypto/backend/mbedtls \
+	$(SDK_ROOT)/components/libraries/crypto/backend/oberon \
 
 # Libraries common to all targets
 LIB_FILES += \

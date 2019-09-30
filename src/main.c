@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <debug.h>
 #include <in3_uart_transport.h>
+#include "nfc_ble_pair_lib.h"
 #include <in3_ble_transport.h>
 #include "nrf_delay.h"
 #include <stdio.h>

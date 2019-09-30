@@ -1,2 +1,6 @@
 **/build
 **/log.log
+**/*.txt
+scripts/*.h
+scripts/temp.py
+scripts/Makefile

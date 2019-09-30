@@ -581,7 +581,15 @@ void transport_ble_init(void)
     services_init();
     advertising_init();
     conn_params_init();
-    advertising_start();
+    peer_manager_init(erase_bonds);
+    if (erase_bonds)
+    {
+        NRF_LOG_INFO("Bonds erased!");
+    }
+    nfc_pairing_init();
+
+    // Start execution.
+    NRF_LOG_INFO("NFC Connection Handover BLE peripheral device example started.");
 }
 
 int transport_connected() {
