@@ -100,6 +100,21 @@ static void timer_init()
     APP_ERROR_CHECK(err_code);
 }
 
+void idle_state_handle(void)
+{
+    ret_code_t err_code;
+
+    err_code = nrf_ble_lesc_request_handler();
+    if (err_code != NRF_ERROR_INVALID_STATE)
+    {
+        APP_ERROR_CHECK(err_code);
+    }
+
+    if (NRF_LOG_PROCESS() == false)
+    {
+        nrf_pwr_mgmt_run();
+    }
+}
 
 /**@brief Function for initializing NFC BLE pairing module.
  */

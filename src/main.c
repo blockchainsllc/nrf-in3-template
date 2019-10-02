@@ -35,7 +35,9 @@ int main() {
 
   in3_log_set_level(LOG_TRACE);
 
-  while(transport_connected() == 0);
+  while(!transport_connected()) {
+    idle_state_handle();
+  }
 
   nrf_delay_ms(5000);
 

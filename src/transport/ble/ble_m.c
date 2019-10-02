@@ -144,7 +144,6 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_CONNECTED:
             NRF_LOG_INFO("Connected.");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-            ble_connected = true;
             APP_ERROR_CHECK(err_code);
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
@@ -185,6 +184,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
                 BLE_GAP_SEC_STATUS_SUCCESS)
             {
                 NRF_LOG_INFO("Authorization succeeded!");
+                ble_connected = true;
             }
             else
             {
