@@ -108,4 +108,6 @@ int _transport_connected();
 
 void buttons_leds_init(bool * p_erase_bonds);
 
+void update_connection_status(bool status);
+
 #endif // BLE_M_H__

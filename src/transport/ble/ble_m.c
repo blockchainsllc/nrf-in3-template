@@ -118,8 +118,12 @@ static ble_advdata_t           m_advdata;                                       
 
 static ble_uuid_t m_adv_uuids[] =                                                   /**< Universally unique service identifiers. */
 {
-    {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}
+    {BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}
 };
+
+void update_connection_status(bool status) {
+  ble_connected = status;
+}
 
 
 /**@brief Function for handling BLE events.
@@ -183,8 +187,8 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             if (p_ble_evt->evt.gap_evt.params.auth_status.auth_status ==
                 BLE_GAP_SEC_STATUS_SUCCESS)
             {
-                NRF_LOG_INFO("Authorization succeeded!");
-                ble_connected = true;
+                dbg_log("Authorization succeeded!\n");
+                //ble_connected = true;
             }
             else
             {

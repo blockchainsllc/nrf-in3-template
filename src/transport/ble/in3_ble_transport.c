@@ -69,7 +69,7 @@
 #define DEVICE_NAME "NRF_IN3"
 
 #ifndef NFC_PAIRING_MODE
-    #define NFC_PAIRING_MODE NFC_PAIRING_MODE_LESC_OOB
+    #define NFC_PAIRING_MODE NFC_PAIRING_MODE_LESC_JUST_WORKS
 #endif
 
 /**@brief Function for initializing nrf logger.

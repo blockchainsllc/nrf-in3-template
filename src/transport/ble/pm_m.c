@@ -45,6 +45,7 @@
 #include "peer_manager.h"
 #include "peer_manager_handler.h"
 #include "nfc_ble_pair_lib.h"
+#include "ble_m.h"
 
 #define NRF_LOG_MODULE_NAME PM_M
 #include "nrf_log.h"
@@ -67,6 +68,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
             // security parameters to achieve highest possible security level.
             err_code = nfc_ble_pair_on_pm_params_req(p_evt);
             APP_ERROR_CHECK(err_code);
+            update_connection_status(true);
             break;
 
         default:

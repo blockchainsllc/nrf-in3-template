@@ -333,7 +333,6 @@ INC_FOLDERS += \
 	$(SDK_ROOT)/components/libraries/stack_info \
 	$(SDK_ROOT)/components/libraries/crypto/backend/optiga \
 	$(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc \
-	../config \
 	$(SDK_ROOT)/external/mbedtls/include \
 	$(SDK_ROOT)/components/libraries/crypto/backend/cc310_bl \
 	$(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw \
