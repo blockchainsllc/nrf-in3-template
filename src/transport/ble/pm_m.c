@@ -68,7 +68,7 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
             // security parameters to achieve highest possible security level.
             err_code = nfc_ble_pair_on_pm_params_req(p_evt);
             APP_ERROR_CHECK(err_code);
-            update_connection_status(true);
+            update_connection_status(false);
             break;
 
         default:

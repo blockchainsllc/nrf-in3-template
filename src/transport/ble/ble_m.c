@@ -187,7 +187,7 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
             if (p_ble_evt->evt.gap_evt.params.auth_status.auth_status ==
                 BLE_GAP_SEC_STATUS_SUCCESS)
             {
-                dbg_log("Authorization succeeded!\n");
+                NRF_LOG_INFO("Authorization succeeded!\n");
                 //ble_connected = true;
             }
             else
@@ -276,7 +276,7 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
         if (start_storing_response) {
           memcpy(response + response_len, p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
           response_len += p_evt->params.rx_data.length;
-          dbg_log("Got a chunk of response, total response length: %d\n", response_len);
+          NRF_LOG_INFO("Got a chunk of response, total response length: %d\n", response_len);
         }
         else if (!start_storing_response && (strstr(p_evt->params.rx_data.p_data, "res:") != NULL)) {
           //do this in a better way
@@ -284,14 +284,14 @@ static void nus_data_handler(ble_nus_evt_t * p_evt)
           memcpy(length_buffer, &(p_evt->params.rx_data.p_data[4]), p_evt->params.rx_data.length - 4);
           tx_received_length = atoi(length_buffer);
           start_storing_response = true;
-          dbg_log("Incoming response of length: %d\n", tx_received_length);
+          NRF_LOG_INFO("Incoming response of length: %d\n", tx_received_length);
         }
 
         if (response_len == tx_received_length) {
           start_storing_response = false;
           tx_received_length = 0;
           response_received = true;
-          dbg_log("Response Received\n");
+          NRF_LOG_INFO("Response Received\n");
         }
         // do
         // {
@@ -524,7 +524,7 @@ in3_ret_t _transport_ble(char **urls, int urls_len, char *payload, in3_response_
   int timeout = 0;
 
   if (!ble_connected) {
-    dbg_log ("Not connected to any device!\n");
+    NRF_LOG_INFO ("Not connected to any device!\n");
     return IN3_ETRANS;
   }
 
@@ -557,7 +557,7 @@ in3_ret_t _transport_ble(char **urls, int urls_len, char *payload, in3_response_
     }
 
     if (ble_ret != NRF_SUCCESS) {
-      dbg_log("Could not relay the payload via bluetooth, Error Code: 0x%x\n", ble_ret);
+      NRF_LOG_INFO("Could not relay the payload via bluetooth, Error Code: 0x%x\n", ble_ret);
       memset(ble_payload, 0, MAX_REQUEST_LEN);
       return IN3_ETRANS;
     }
@@ -567,7 +567,7 @@ in3_ret_t _transport_ble(char **urls, int urls_len, char *payload, in3_response_
     while(!response_received) {
 
       if (timeout >= BLE_IN3_TIMEOUT) {
-        dbg_log("REQUEST TIMED OUT\n");
+        NRF_LOG_INFO("REQUEST TIMED OUT\n");
         start_storing_response = false;
         tx_received_length = 0;
         memset(response, 0, response_len);
@@ -579,14 +579,14 @@ in3_ret_t _transport_ble(char **urls, int urls_len, char *payload, in3_response_
     }
 
     if(response_received) {
-      dbg_log("Response Length: %d\n", response_len);
+      NRF_LOG_INFO("Response Length: %d\n", response_len);
       response_received = false;
       sb_add_range(&(result[i].result), response, 0, response_len);
       response_len = 0;
       memset(response, 0, response_len);
     }
   }
-  dbg_log("Sending OK\n");
+  NRF_LOG_INFO("Sending OK\n");
   return IN3_OK;
 }
 

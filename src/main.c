@@ -15,9 +15,13 @@
 #include <unistd.h>
 #endif
 
+#include "nrf_log.h"
+#include "nrf_log_ctrl.h"
+#include "nrf_log_default_backends.h"
+
 int main() {
 
-  dbg_log("================== NRF-IN3 ====================\n");
+  NRF_LOG_INFO("================== NRF-IN3 ====================\n");
 
   // register a chain-verifier for full Ethereum-Support
   in3_register_eth_full();
@@ -35,19 +39,16 @@ int main() {
 
   in3_log_set_level(LOG_TRACE);
 
-  while(!transport_connected()) {
-    idle_state_handle();
-  }
-
-  nrf_delay_ms(5000);
+  while(!transport_connected());
 
   // use a ethereum-api instead of pure JSON-RPC-Requests
   eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
 
-  if (!block)
-    dbg_log("Could not find the Block: %s\n", eth_last_error());
+  if (!block) {
+    NRF_LOG_INFO("Could not find the Block: %s\n", eth_last_error());
+  }
   else {
-    dbg_log("Number of verified transactions in block: %d\n", block->tx_count);
+    NRF_LOG_INFO("Number of verified transactions in block: %d\n", block->tx_count);
     free(block);
   }
 
@@ -61,7 +62,7 @@ int main() {
   // ask for the number of servers registered
   json_ctx_t* response = eth_call_fn(in3_client, contract, "totalServers():uint256");
   if (!response) {
-    dbg_log("Could not get the response: %s\n", eth_last_error());
+    NRF_LOG_INFO("Could not get the response: %s\n", eth_last_error());
     return -1;
   }
 
@@ -72,7 +73,7 @@ int main() {
   free_json(response);
 
   // output
-  dbg_log("Found %u servers registered : \n", number_of_servers);
+  NRF_LOG_INFO("Found %u servers registered : \n", number_of_servers);
 
   // clean up
   in3_free(in3_client);
