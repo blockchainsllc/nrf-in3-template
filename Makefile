@@ -2,7 +2,8 @@ PROJECT_NAME     := nrf_in3
 TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := build
 
-TOOLCHAIN_PATH := /Users/chirag-parmar/arm-toolchain/bin
+GNU_INSTALL_ROOT := /Users/paul/software/in3/gcc-arm/bin/
+SDK_ROOT := /Users/paul/software/embedded/nRF5_SDK_15.3.0
 
 PROJ_DIR := .
 SRC_DIR := $(PROJ_DIR)/src
@@ -455,7 +456,7 @@ debug-server:
 	JLinkGDBServerCL -device nrf52840_xxaa -if swd -port 2331
 
 debug:
-	$(TOOLCHAIN_PATH)/arm-none-eabi-gdb $(OUTPUT_DIRECTORY)/$(TARGETS).out -x debug_cmds.txt
+	$(GNU_INSTALL_ROOT)arm-none-eabi-gdb $(OUTPUT_DIRECTORY)/$(TARGETS).out -x debug_cmds.txt
 
 SDK_CONFIG_FILE := ../config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar

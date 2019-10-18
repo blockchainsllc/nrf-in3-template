@@ -2,6 +2,7 @@ import serial
 import requests
 import json
 
+
 def makeRequest(url, payload):
     all_payloads = json.loads(payload)
     all_responses = "["
@@ -18,12 +19,13 @@ def makeRequest(url, payload):
 
     return all_responses
 
+
 ser = serial.Serial(
-    port='/dev/tty.usbserial-00000000',\
-    baudrate=115200,\
-    parity=serial.PARITY_NONE,\
-    stopbits=serial.STOPBITS_ONE,\
-    bytesize=serial.EIGHTBITS,\
+    port='/dev/tty.usbserial-00000000', \
+    baudrate=115200, \
+    parity=serial.PARITY_NONE, \
+    stopbits=serial.STOPBITS_ONE, \
+    bytesize=serial.EIGHTBITS, \
     timeout=0)
 
 print("connected to: " + ser.portstr)
