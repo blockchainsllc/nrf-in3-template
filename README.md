@@ -41,6 +41,16 @@ Change `main.c`to activate he desired transport module, `UART` is de the default
 Developer need an UART to USB adapter to be able to access this interface. We used `FTDI232`for testing.
  - [Mouser.de FTDI 232](https://www.mouser.de/ProductDetail/Parallax/28024?qs=%2Fha2pyFaduj%2FYF1ey9away8PnRzDxED6kbp3OE70Ey4%3D)
  - [Bus Pirate](http://dangerousprototypes.com/docs/Bus_Pirate)
+ 
+##### Usage
+1. Connect the UART to USB adapter to the nRF accordingly to the pinout
+2. Create a python virtual environment `virtualenv -p python3 venv`
+3. Activate it `source venv/bin/activate`
+4. Install the dependencies `pip install -r scripts/requirements.txt`
+5. Run the script `python scripts/in3_uart_adapter.py`
+6. Turn on the dev board or press the reset button
+7. Script must show the incubed payload and request the data from the in3 server
+
 ##### UART pinout on nRF5840:
 
 | PIN NUMBER | PIN NAME | FTDI232  |
