@@ -1,9 +1,12 @@
+import argparse
 import serial
 import requests
 import json
+import signal
+import sys
 
 
-def makeRequest(url, payload):
+def make_request(url, payload):
     all_payloads = json.loads(payload)
     all_responses = "["
 
@@ -11,7 +14,7 @@ def makeRequest(url, payload):
         res = requests.post(url=url, json=request_payload)
 
         if res.status_code == 200:
-            all_responses += res.content
+            all_responses += res.text
         else:
             raise Exception("Couldn't get the response STATUS CODE: " + str(res.status_code))
 
@@ -20,31 +23,52 @@ def makeRequest(url, payload):
     return all_responses
 
 
-ser = serial.Serial(
-    port='/dev/tty.usbserial-00000000', \
-    baudrate=115200, \
-    parity=serial.PARITY_NONE, \
-    stopbits=serial.STOPBITS_ONE, \
-    bytesize=serial.EIGHTBITS, \
-    timeout=0)
+if __name__ == '__main__':
 
-print("connected to: " + ser.portstr)
-read_string = ""
+    parser = argparse.ArgumentParser(description='Device to connect to.')
+    parser.add_argument('device', metavar='-d', type=str,
+                        help='Serial/TTY devices to connect to, can be multiple, separated by spaces')
+    args = parser.parse_args()
 
-while True:
-    read_complete = False
+    def signal_handler(sig, frame):
+        print('{} on {}'.format(sig, frame))
+        print('Bye!')
+        if ser:
+            ser.close()
+        sys.exit(0)
 
-    for character in ser.read():
-        read_string += character
-        if character == '\0':
-            read_complete = True
-            print("read_complete")
-            read_string = read_string.strip('\0')
-            if len(read_string) > 0:
-                print(read_string)
-                url, payload = read_string.split(";")
-                response = makeRequest(url, payload)
-                ser.write(response);
-                read_string = ""
+    signal.signal(signal.SIGINT, signal_handler)
 
-ser.close()
+    ser = serial.Serial(
+        port=args.device,
+        baudrate=115200,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        bytesize=serial.EIGHTBITS,
+        timeout=0)
+
+    print("connected to: " + ser.portstr)
+    print('Press Ctrl+C to exit.')
+    read_string = ""
+
+    while True:
+        read_complete = False
+
+        for character in ser.read():
+            # type casting integer ascii value to character string
+            character = chr(character)
+            # print('received char: {}'.format(chr(character)))
+            read_string += character
+            if character == '\0':
+                read_complete = True
+                print("read_complete")
+                read_string = read_string.strip('\0')
+                if len(read_string) > 0:
+                    print('received: {}'.format(read_string))
+                    url, payload = read_string.split(";")
+                    response = make_request(url, payload)
+                    print(response)
+                    ser.write(response);
+                    read_string = ""
+
+

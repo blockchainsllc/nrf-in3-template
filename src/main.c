@@ -23,23 +23,33 @@ int main() {
 
   NRF_LOG_INFO("================== NRF-IN3 ====================\n");
 
+  // INCUBED VERIFICATION LEVEL SELECTOR
   // register a chain-verifier for full Ethereum-Support
+  //in3_register_eth_nano();
+  //in3_register_eth_basic();
   in3_register_eth_full();
 
-  transport_ble_init();
+  // TRANSPORT MODULE SELECTOR
+  //transport_ble_init();
+  transport_uart_init();
 
-  // create new incubed client
+  // Instantiate new incubed client
   in3_t* in3_client = in3_new();
 
-  // set your config
-  in3_client->transport    = transport_ble; // use uart to handle the requests
+  // INCUBED CLIENT CONFIGURATION
+  // REPEAT TRANSPORT AND PROOF SELECTION
+  // in3_client->transport    = transport_ble;
+  in3_client->transport    = transport_uart;
   in3_client->requestCount = 1;         // number of requests to send
   in3_client->chainId      = 0x1;
-  in3_client->proof        = PROOF_FULL;
+  //in3_client->proof        = PROOF_NONE; // NANO
+  //in3_client->proof        = PROOF_STANDARD; // BASIC
+  in3_client->proof        = PROOF_FULL; // FULL
 
   in3_log_set_level(LOG_TRACE);
 
-  while(!transport_connected());
+// BLUETOOTH ONLY
+//  while(!transport_connected());
 
   // use a ethereum-api instead of pure JSON-RPC-Requests
   eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
