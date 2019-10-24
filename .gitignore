@@ -2,3 +2,6 @@
 **/log.log
 **/*.txt
 scripts/*.h
+.DS_Store
+cmake-build-debug
+venv

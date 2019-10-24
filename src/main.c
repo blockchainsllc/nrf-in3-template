@@ -1,18 +1,30 @@
 #include <client.h>   // the core client
 #include <eth_api.h>  // wrapper for easier use
-#include <eth_full.h> // the full ethereum verifier containing the EVM
+#ifdef IN3_VERSION_NANO
+#include <eth_nano.h>
+#elif IN3_VERSION_BASIC
+#include <eth_basic.h>
+#elif IN3_VERSION_FULL
+#include <eth_full.h>
+#endif
 #include <log.h>
 #include <inttypes.h>
 #include <debug.h>
-#include <in3_uart_transport.h>
+#ifdef IN3_TRANSPORT_BLE
 #include "nfc_ble_pair_lib.h"
 #include <in3_ble_transport.h>
+#elif IN3_TRANSPORT_UART
+#include <in3_uart_transport.h>
+#endif
 #include "nrf_delay.h"
 #include <stdio.h>
+
 #if defined(_WIN32) || defined(WIN32)
 #include <windows.h>
 #else
+
 #include <unistd.h>
+
 #endif
 
 #include "nrf_log.h"
@@ -21,70 +33,81 @@
 
 int main() {
 
-  NRF_LOG_INFO("================== NRF-IN3 ====================\n");
+    NRF_LOG_INFO("Starting...\n");
+    // INCUBED VERIFICATION LEVEL SELECTOR SET ON MAKEFILE
+#ifdef IN3_VERSION_NANO
+    in3_register_eth_nano();
+#elif IN3_VERSION_BASIC
+    in3_register_eth_basic();
+#elif IN3_VERSION_FULL
+    in3_register_eth_full();
+#endif
+    // TRANSPORT MODULE SELECTOR SET ON MAKEFILE
+#ifdef IN3_TRANSPORT_BLE
+    transport_ble_init();
+#elif IN3_TRANSPORT_UART
+    transport_uart_init();
+#endif
 
-  // INCUBED VERIFICATION LEVEL SELECTOR
-  // register a chain-verifier for full Ethereum-Support
-  //in3_register_eth_nano();
-  //in3_register_eth_basic();
-  in3_register_eth_full();
+    // Instantiate new incubed client
+    in3_t* in3_client = in3_new();
+    // INCUBED CLIENT CONFIGURATION
+    in3_client->requestCount = 1; // number of requests to send
+    in3_log_set_level(LOG_TRACE);
+#ifdef IN3_CHAIN_ID
+    in3_client->chainId      = IN3_CHAIN_ID;
+#else
+    in3_client->chainId      = 0x1;
+#endif
+#ifdef IN3_TRANSPORT_BLE
+    in3_client->transport    = transport_ble;
+#elif IN3_TRANSPORT_UART
+    in3_client->transport    = transport_uart;
+#endif
+#ifdef IN3_VERSION_NANO
+    in3_client->proof        = PROOF_NONE; // NANO
+#elif IN3_VERSION_BASIC
+    in3_client->proof        = PROOF_STANDARD; // BASIC
+#elif IN3_VERSION_FULL
+    in3_client->proof        = PROOF_FULL;
+#endif
 
-  // TRANSPORT MODULE SELECTOR
-  //transport_ble_init();
-  transport_uart_init();
+#ifdef IN3_TRANSPORT_BLE
+    while(!transport_connected());
+#endif
 
-  // Instantiate new incubed client
-  in3_t* in3_client = in3_new();
+    // use a ethereum-api instead of pure JSON-RPC-Requests
+    eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
+    if (!block) {
+      NRF_LOG_INFO("Could not find the Block: %s\n", eth_last_error());
+    }
+    else {
+      NRF_LOG_INFO("Number of verified transactions in block: %d\n", block->tx_count);
+      free(block);
+    }
 
-  // INCUBED CLIENT CONFIGURATION
-  // REPEAT TRANSPORT AND PROOF SELECTION
-  // in3_client->transport    = transport_ble;
-  in3_client->transport    = transport_uart;
-  in3_client->requestCount = 1;         // number of requests to send
-  in3_client->chainId      = 0x1;
-  //in3_client->proof        = PROOF_NONE; // NANO
-  //in3_client->proof        = PROOF_STANDARD; // BASIC
-  in3_client->proof        = PROOF_FULL; // FULL
+#ifdef IN3_VERSION_FULL | IN3_VERSION_BASIC
+    // define a address (20byte)
+    address_t contract;
+    // copy the hexcoded string into this address
+    hex2byte_arr("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
+    // ask for the number of servers registered
+    json_ctx_t* response = eth_call_fn(in3_client, contract, "totalServers():uint256");
+    if (!response) {
+      NRF_LOG_INFO("Could not get the response: %s\n", eth_last_error());
+      return -1;
+    }
+    // convert the response to a uint32_t,
+    uint32_t number_of_servers = d_int(response->result);
+    // clean up resources
+    free_json(response);
+    // output
+    NRF_LOG_INFO("Found %u servers registered.\n", number_of_servers);
 
-  in3_log_set_level(LOG_TRACE);
+#elif IN3_VERSION_NANO
+    NRF_LOG_INFO("Nano version, no `eth_call` allowed ;)\n");
+#endif
 
-// BLUETOOTH ONLY
-//  while(!transport_connected());
-
-  // use a ethereum-api instead of pure JSON-RPC-Requests
-  eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
-
-  if (!block) {
-    NRF_LOG_INFO("Could not find the Block: %s\n", eth_last_error());
+    // clean up
+    in3_free(in3_client);
   }
-  else {
-    NRF_LOG_INFO("Number of verified transactions in block: %d\n", block->tx_count);
-    free(block);
-  }
-
-
-  // define a address (20byte)
-  address_t contract;
-
-  // copy the hexcoded string into this address
-  hex2byte_arr("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
-
-  // ask for the number of servers registered
-  json_ctx_t* response = eth_call_fn(in3_client, contract, "totalServers():uint256");
-  if (!response) {
-    NRF_LOG_INFO("Could not get the response: %s\n", eth_last_error());
-    return -1;
-  }
-
-  // convert the response to a uint32_t,
-  uint32_t number_of_servers = d_int(response->result);
-
-  // clean up resources
-  free_json(response);
-
-  // output
-  NRF_LOG_INFO("Found %u servers registered : \n", number_of_servers);
-
-  // clean up
-  in3_free(in3_client);
-}

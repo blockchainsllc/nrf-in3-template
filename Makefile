@@ -10,6 +10,18 @@ SRC_DIR := $(PROJ_DIR)/src
 INC_DIR := $(PROJ_DIR)/include
 LIB_DIR := $(PROJ_DIR)/lib
 
+# CHAIN ID are dependable on IN3 contract deployed on said chain.
+# Check https://git.slock.it/in3/c/in3-core/blob/develop/src/core/client/client_init.c
+# 0x1: Mainnet, the Ethereum public PoW network
+# 0x5: Goerli, the public cross-client PoA testnet
+# 0x42: Kovan, the public Parity-only PoA testnet
+# 0x7d0: IPFS, ?
+IN3_CHAIN_ID := 0x5
+# NANO | BASIC | FULL
+IN3_VERSION := FULL
+# UART | BLE
+IN3_TRANSPORT := UART
+
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/nrf_in3.ld
 
@@ -355,6 +367,8 @@ OPT = -Os -g3
 
 # C flags common to all targets
 CFLAGS += $(OPT)
+CFLAGS += -DIN3_VERSION_$(IN3_VERSION)
+CFLAGS += -DIN3_TRANSPORT_$(IN3_TRANSPORT)
 CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
