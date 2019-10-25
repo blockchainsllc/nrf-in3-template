@@ -2,16 +2,13 @@ PROJECT_NAME     := nrf_in3
 TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := build
 
-GNU_INSTALL_ROOT := /Users/paul/software/in3/gcc-arm/bin/
-SDK_ROOT := /Users/paul/software/embedded/nRF5_SDK_15.3.0
-
 PROJ_DIR := .
 SRC_DIR := $(PROJ_DIR)/src
 INC_DIR := $(PROJ_DIR)/include
 LIB_DIR := $(PROJ_DIR)/lib
 
-# CHAIN ID are dependable on IN3 contract deployed on said chain.
-# Check https://git.slock.it/in3/c/in3-core/blob/develop/src/core/client/client_init.c
+# CHAIN ID are dependable on in3-c contract deployed on said chain.
+# Check https://git.slock.it/in3-c/c/in3-c-core/blob/develop/src/core/client/client_init.c
 # 0x1: Mainnet, the Ethereum public PoW network
 # 0x5: Goerli, the public cross-client PoA testnet
 # 0x42: Kovan, the public Parity-only PoA testnet
@@ -31,15 +28,15 @@ SRC_FILES += \
 	$(wildcard $(SRC_DIR)/transport/ble/*.c) \
 	$(wildcard $(SRC_DIR)/transport/mock/*.c) \
 	$(wildcard $(SRC_DIR)/transport/uart/*.c) \
-	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
-	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
-	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
-	$(wildcard $(SRC_DIR)/in3/third-party/crypto/*.c) \
-	$(wildcard $(SRC_DIR)/in3/third-party/tommath/*.c) \
-	$(wildcard $(SRC_DIR)/in3/verifier/eth1/nano/*.c) \
-	$(wildcard $(SRC_DIR)/in3/verifier/eth1/basic/*.c) \
-	$(wildcard $(SRC_DIR)/in3/verifier/eth1/evm/*.c) \
-	$(wildcard $(SRC_DIR)/in3/verifier/eth1/full/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/api/eth1/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/core/client/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/core/util/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/third-party/crypto/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/third-party/tommath/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/nano/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/basic/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/evm/*.c) \
+	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/full/*.c) \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -189,15 +186,15 @@ INC_FOLDERS += \
   $(SRC_DIR)/transport/ble \
 	$(SRC_DIR)/transport/mock \
 	$(SRC_DIR)/transport/uart \
-	$(SRC_DIR)/in3/api/eth1 \
-	$(SRC_DIR)/in3/core/client \
-	$(SRC_DIR)/in3/core/util \
-	$(SRC_DIR)/in3/third-party/crypto \
-	$(SRC_DIR)/in3/third-party/tommath \
-	$(SRC_DIR)/in3/verifier/eth1/basic \
-	$(SRC_DIR)/in3/verifier/eth1/nano \
-	$(SRC_DIR)/in3/verifier/eth1/evm \
-	$(SRC_DIR)/in3/verifier/eth1/full \
+	$(SRC_DIR)/in3-c/api/eth1 \
+	$(SRC_DIR)/in3-c/core/client \
+	$(SRC_DIR)/in3-c/core/util \
+	$(SRC_DIR)/in3-c/third-party/crypto \
+	$(SRC_DIR)/in3-c/third-party/tommath \
+	$(SRC_DIR)/in3-c/verifier/eth1/basic \
+	$(SRC_DIR)/in3-c/verifier/eth1/nano \
+	$(SRC_DIR)/in3-c/verifier/eth1/evm \
+	$(SRC_DIR)/in3-c/verifier/eth1/full \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/external/nrf_cc310/include \
   $(SDK_ROOT)/components/libraries/atomic \
@@ -434,7 +431,7 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: check-env nrf52840_xxaa
+default: check-env check-in3 nrf52840_xxaa
 # Print all targets that can be built
 help:
 	@echo following targets are available:
@@ -466,6 +463,15 @@ flash_softdevice:
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
+check-in3:
+	echo Checking in3 version;
+	if [ -d "$(SRC_DIR)/in3-c" ]; \
+		then \
+			echo "Dir exists"; \
+		else \
+			git clone https://github.com/slockit/in3-c.git $(SRC_DIR); \
+	fi
+
 debug-server:
 	JLinkGDBServerCL -device nrf52840_xxaa -if swd -port 2331
 
@@ -479,5 +485,8 @@ sdk_config:
 
 check-env:
 ifndef SDK_ROOT
-$(error Set environment variable 'SDK_ROOT' conataining the NRF5 SDK folder path)
+$(error Set environment variable 'SDK_ROOT' containing the NRF5 SDK folder path)
+endif
+ifndef GNU_INSTALL_ROOT
+$(error Set environment variable 'GNU_INSTALL_ROOT' containing the toolchain folder path)
 endif

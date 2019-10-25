@@ -1,6 +1,7 @@
 **/build
 **/log.log
 **/*.txt
+src/in3-c
 scripts/*.h
 .DS_Store
 cmake-build-debug
