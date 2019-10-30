@@ -1,15 +1,14 @@
-#include <client.h>   // the core client
-#include <eth_api.h>  // wrapper for easier use
+#include <in3/client.h>   // the core client
+#include <in3/eth_api.h>  // wrapper for easier use
 #ifdef IN3_VERSION_NANO
-#include <eth_nano.h>
+#include <in3/eth_nano.h>
 #elif IN3_VERSION_BASIC
-#include <eth_basic.h>
+#include <in3/eth_basic.h>
 #elif IN3_VERSION_FULL
-#include <eth_full.h>
+#include <in3/eth_full.h>
 #endif
-#include <log.h>
-#include <inttypes.h>
-#include <debug.h>
+#include <in3/log.h>
+// #include <in3/inttypes.h>
 #ifdef IN3_TRANSPORT_BLE
 #include "nfc_ble_pair_lib.h"
 #include <in3_ble_transport.h>
@@ -77,7 +76,7 @@ int main() {
 #endif
 
     // use a ethereum-api instead of pure JSON-RPC-Requests
-    eth_block_t* block = eth_getBlockByNumber(in3_client, 6970454, true);
+    eth_block_t* block = eth_getBlockByNumber(in3_client, BLKNUM(6970454), true);
     if (!block) {
       NRF_LOG_INFO("Could not find the Block: %s\n", eth_last_error());
     }
@@ -92,7 +91,7 @@ int main() {
     // copy the hexcoded string into this address
     hex2byte_arr("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
     // ask for the number of servers registered
-    json_ctx_t* response = eth_call_fn(in3_client, contract, "totalServers():uint256");
+    json_ctx_t* response = eth_call_fn(in3_client, contract, BLKNUM_LATEST(), "totalServers():uint256");
     if (!response) {
       NRF_LOG_INFO("Could not get the response: %s\n", eth_last_error());
       return -1;

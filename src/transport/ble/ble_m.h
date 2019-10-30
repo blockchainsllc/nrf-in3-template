@@ -47,7 +47,7 @@
 #define BLE_M_H__
 
 #include "ble_advertising.h"
-#include <client.h>   // the core client
+#include <in3/client.h>   // the core client
 
 /**@brief Function for initializing the advertising functionality. */
 void advertising_init(void);

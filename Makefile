@@ -7,8 +7,8 @@ SRC_DIR := $(PROJ_DIR)/src
 INC_DIR := $(PROJ_DIR)/include
 LIB_DIR := $(PROJ_DIR)/lib
 
-# CHAIN ID are dependable on in3-c contract deployed on said chain.
-# Check https://git.slock.it/in3-c/c/in3-c-core/blob/develop/src/core/client/client_init.c
+# CHAIN ID are dependable on in3 contract deployed on said chain.
+# Check https://git.slock.it/in3/src/c/in3-core/blob/develop/src/core/client/client_init.c
 # 0x1: Mainnet, the Ethereum public PoW network
 # 0x5: Goerli, the public cross-client PoA testnet
 # 0x42: Kovan, the public Parity-only PoA testnet
@@ -28,15 +28,6 @@ SRC_FILES += \
 	$(wildcard $(SRC_DIR)/transport/ble/*.c) \
 	$(wildcard $(SRC_DIR)/transport/mock/*.c) \
 	$(wildcard $(SRC_DIR)/transport/uart/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/api/eth1/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/core/client/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/core/util/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/third-party/crypto/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/third-party/tommath/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/nano/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/basic/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/evm/*.c) \
-	$(wildcard $(SRC_DIR)/in3-c/verifier/eth1/full/*.c) \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -186,15 +177,7 @@ INC_FOLDERS += \
   $(SRC_DIR)/transport/ble \
 	$(SRC_DIR)/transport/mock \
 	$(SRC_DIR)/transport/uart \
-	$(SRC_DIR)/in3-c/api/eth1 \
-	$(SRC_DIR)/in3-c/core/client \
-	$(SRC_DIR)/in3-c/core/util \
-	$(SRC_DIR)/in3-c/third-party/crypto \
-	$(SRC_DIR)/in3-c/third-party/tommath \
-	$(SRC_DIR)/in3-c/verifier/eth1/basic \
-	$(SRC_DIR)/in3-c/verifier/eth1/nano \
-	$(SRC_DIR)/in3-c/verifier/eth1/evm \
-	$(SRC_DIR)/in3-c/verifier/eth1/full \
+ 	$(SRC_DIR)/in3/include/ \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/external/nrf_cc310/include \
   $(SDK_ROOT)/components/libraries/atomic \
@@ -431,7 +414,8 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: check-env check-in3 nrf52840_xxaa
+default: check-in3 check-env copy-debug-header print-in3 nrf52840_xxaa
+
 # Print all targets that can be built
 help:
 	@echo following targets are available:
@@ -446,7 +430,7 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: flash erase flash_softdevice debug debug-server sdk_config check-env
+.PHONY: flash erase flash_softdevice debug debug-server sdk_config copy-debug-header check-env check-in3 print-in3
 
 # Flash the program
 flash: default
@@ -464,13 +448,29 @@ flash_softdevice:
 	nrfjprog -f nrf52 --reset
 
 check-in3:
-	echo Checking in3 version;
-	if [ -d "$(SRC_DIR)/in3-c" ]; \
+	@echo Checking in3 version;
+	if [ -d "$(SRC_DIR)/in3" ]; \
 		then \
 			echo "Dir exists"; \
 		else \
-			git clone https://github.com/slockit/in3-c.git $(SRC_DIR); \
+			git clone https://github.com/slockit/in3-c.git $(SRC_DIR)/in3; \
 	fi
+
+copy-debug-header:
+	cp $(SRC_DIR)/in3/src/core/util/debug.h $(SRC_DIR)/in3/include/in3/debug.h
+	$(eval SRC_FILES+=$(wildcard $(SRC_DIR)/in3/src/api/eth1/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/core/client/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/core/util/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/third-party/crypto/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/third-party/tommath/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/nano/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/basic/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/evm/*.c) \
+		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/full/*.c))
+
+print-in3:
+	@echo Done
+	@echo $(SRC_FILES)
 
 debug-server:
 	JLinkGDBServerCL -device nrf52840_xxaa -if swd -port 2331
