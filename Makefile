@@ -18,6 +18,8 @@ IN3_CHAIN_ID := 0x5
 IN3_VERSION := FULL
 # UART | BLE
 IN3_TRANSPORT := UART
+# specify the branch to extract the source code from
+IN3_BRANCH := develop
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/nrf_in3.ld
@@ -28,6 +30,16 @@ SRC_FILES += \
 	$(wildcard $(SRC_DIR)/transport/ble/*.c) \
 	$(wildcard $(SRC_DIR)/transport/mock/*.c) \
 	$(wildcard $(SRC_DIR)/transport/uart/*.c) \
+	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
+	$(wildcard $(SRC_DIR)/in3/api/usn/*.c) \
+	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
+	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
+	$(wildcard $(SRC_DIR)/in3/third-party/crypto/*.c) \
+	$(wildcard $(SRC_DIR)/in3/third-party/tommath/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/nano/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/basic/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/evm/*.c) \
+	$(wildcard $(SRC_DIR)/in3/verifier/eth1/full/*.c) \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_rtt.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_backend_serial.c \
@@ -173,11 +185,13 @@ SRC_FILES += \
 
 # Include folders common to all targets
 INC_FOLDERS += \
+	$(INC_DIR) \
   $(SDK_ROOT)/external/fprintf \
   $(SRC_DIR)/transport/ble \
 	$(SRC_DIR)/transport/mock \
 	$(SRC_DIR)/transport/uart \
- 	$(SRC_DIR)/in3/include/ \
+ 	$(INC_DIR)/in3 \
+	$(SRC_DIR)/in3/core/util \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/external/nrf_cc310/include \
   $(SDK_ROOT)/components/libraries/atomic \
@@ -353,7 +367,7 @@ CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DDEBUG
-CFLAGS += -D__NRF_FREERTOS__
+CFLAGS += -DSEGGER_RTT
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DMBEDTLS_CONFIG_FILE=\"nrf_crypto_mbedtls_config.h\"
 CFLAGS += -DNRF52840_XXAA
@@ -414,7 +428,7 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: check-in3 check-env copy-debug-header print-in3 nrf52840_xxaa
+default: check_env nrf52840_xxaa
 
 # Print all targets that can be built
 help:
@@ -430,7 +444,7 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: flash erase flash_softdevice debug debug-server sdk_config copy-debug-header check-env check-in3 print-in3
+.PHONY: flash erase flash_softdevice debug debug-server sdk_config check_env update_in3
 
 # Flash the program
 flash: default
@@ -447,30 +461,20 @@ flash_softdevice:
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
-check-in3:
-	@echo Checking in3 version;
+update_in3:
 	if [ -d "$(SRC_DIR)/in3" ]; \
 		then \
-			echo "Dir exists"; \
-		else \
-			git clone https://github.com/slockit/in3-c.git $(SRC_DIR)/in3; \
+			rm -rf $(SRC_DIR)/in3; \
 	fi
-
-copy-debug-header:
-	cp $(SRC_DIR)/in3/src/core/util/debug.h $(SRC_DIR)/in3/include/in3/debug.h
-	$(eval SRC_FILES+=$(wildcard $(SRC_DIR)/in3/src/api/eth1/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/core/client/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/core/util/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/third-party/crypto/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/third-party/tommath/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/nano/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/basic/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/evm/*.c) \
-		$(wildcard $(SRC_DIR)/in3/src/verifier/eth1/full/*.c))
-
-print-in3:
-	@echo Done
-	@echo $(SRC_FILES)
+	git clone https://github.com/slockit/in3-c.git $(SRC_DIR)/in3-c; \
+	cd $(SRC_DIR)/in3-c && git checkout $(IN3_BRANCH)
+	mkdir $(SRC_DIR)/in3
+	cp -rf $(SRC_DIR)/in3-c/src/. $(SRC_DIR)/in3/
+	cp -rf $(SRC_DIR)/in3-c/include/in3 $(INC_DIR)/
+	rm -rf $(SRC_DIR)/in3-c
+	rm -rf $(SRC_DIR)/in3/bindings
+	rm -rf $(SRC_DIR)/in3/cmd
+	rm -rf $(SRC_DIR)/in3/transport
 
 debug-server:
 	JLinkGDBServerCL -device nrf52840_xxaa -if swd -port 2331
@@ -483,7 +487,7 @@ CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
 
-check-env:
+check_env:
 ifndef SDK_ROOT
 $(error Set environment variable 'SDK_ROOT' containing the NRF5 SDK folder path)
 endif

@@ -13,7 +13,7 @@
 #endif
 
 //IN3 Stuff
-#include <in3/debug.h>
+#include <debug.h>
 #include <in3/client.h>
 
 #include <in3_uart_transport.h>
