@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 // @PUBLIC_HEADER
 /** @file
  * incubed main client file.
@@ -16,7 +50,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define IN3_PROTO_VER 0x2
+#define IN3_PROTO_VER "2.0.0"
+
+#define ETH_CHAIN_ID_MAINNET 0x01L
+#define ETH_CHAIN_ID_KOVAN 0x2aL
+#define ETH_CHAIN_ID_TOBALABA 0x44dL
+#define ETH_CHAIN_ID_GOERLI 0x5L
+#define ETH_CHAIN_ID_EVAN 0x4b1L
+#define ETH_CHAIN_ID_IPFS 0x7d0
+#define ETH_CHAIN_ID_VOLTA 0x12046
+#define ETH_CHAIN_ID_LOCAL 0xFFFFL
 
 /** the type of the chain. 
  * 
@@ -162,11 +205,23 @@ typedef enum {
  * In case of an error a negativ value must be returned. It should be one of the IN3_SIGN_ERR... values.
  * 
 */
-typedef in3_ret_t (*in3_sign)(void* wallet, d_signature_type_t type, bytes_t message, bytes_t account, uint8_t* dst);
+typedef in3_ret_t (*in3_sign)(void* ctx, d_signature_type_t type, bytes_t message, bytes_t account, uint8_t* dst);
+
+/** 
+ * transform transaction function.
+ * 
+ * for multisigs, we need to change the transaction to gro through the ms.
+ * if the new_tx is not set within the function, it will use the old_tx.
+ * 
+*/
+typedef in3_ret_t (*in3_prepare_tx)(void* ctx, d_token_t* old_tx, json_ctx_t** new_tx);
 
 typedef struct in3_signer {
   /* function pointer returning a stored value for the given key.*/
   in3_sign sign;
+
+  /* function pointer returning capable of manipulating the transaction before signing it. This is needed in order to support multisigs.*/
+  in3_prepare_tx prepare_tx;
 
   /* custom object whill will be passed to functions */
   void* wallet;
@@ -182,9 +237,20 @@ typedef struct n3_response {
   sb_t result; /**< a stringbuilder to add the result */
 } in3_response_t;
 
+/** request-object. 
+ * 
+ * represents a RPC-request
+ */
+typedef struct n3_request {
+  char*           payload;  /**< the payload to send */
+  char**          urls;     /**< array of urls */
+  int             urls_len; /**< number of urls */
+  in3_response_t* results;  /** the responses*/
+} in3_request_t;
+
 /** the transport function to be implemented by the transport provider.
  */
-typedef in3_ret_t (*in3_transport_send)(char** urls, int urls_len, char* payload, in3_response_t* results);
+typedef in3_ret_t (*in3_transport_send)(in3_request_t* request);
 
 typedef enum {
   FILTER_EVENT   = 0, /**< Event filter */
@@ -372,6 +438,11 @@ void in3_free(in3_t* a /**< [in] the pointer to the incubed client config to fre
  *
  */
 in3_ret_t in3_cache_init(in3_t* c /**< the incubed client */);
+
+/**
+ * finds the chain-config for the given chain_id.
+ */
+in3_chain_t* find_chain(in3_t* c, uint64_t chain_id);
 
 /**
  * configures the clent based on a json-config.

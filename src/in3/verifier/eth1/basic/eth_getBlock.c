@@ -1,3 +1,36 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
 
 #include "../../../core/client/context.h"
 #include "../../../core/client/keys.h"
@@ -63,21 +96,24 @@ in3_ret_t eth_verify_eth_getBlock(in3_vctx_t* vc, bytes_t* block_hash, uint64_t 
 
     trie_t* trie = trie_new();
     for (i = 0, t = transactions + 1; i < d_len(transactions); i++, t = d_next(t)) {
-      bytes_t* path = create_tx_path(i);
-      bytes_t* tx   = serialize_tx(t);
-      bytes_t* h    = (full_proof || !include_full_tx) ? sha3(tx) : NULL;
+      bool     is_raw_tx = d_type(t) == T_BYTES;
+      bytes_t* path      = create_tx_path(i);
+      bytes_t* tx        = is_raw_tx ? d_bytes(t) : serialize_tx(t);
+      bytes_t* h         = (full_proof || !include_full_tx) ? sha3(tx) : NULL;
 
-      if (eth_verify_tx_values(vc, t, tx))
-        res = IN3_EUNKNOWN;
+      if (!is_raw_tx) {
+        if (eth_verify_tx_values(vc, t, tx))
+          res = IN3_EUNKNOWN;
 
-      if ((t2 = d_getl(t, K_BLOCK_HASH, 32)) && !b_cmp(d_bytes(t2), bhash))
-        res = vc_err(vc, "Wrong Blockhash in tx");
+        if ((t2 = d_getl(t, K_BLOCK_HASH, 32)) && !b_cmp(d_bytes(t2), bhash))
+          res = vc_err(vc, "Wrong Blockhash in tx");
 
-      if ((t2 = d_get(t, K_BLOCK_NUMBER)) && d_long(t2) != bnumber)
-        res = vc_err(vc, "Wrong Blocknumber in tx");
+        if ((t2 = d_get(t, K_BLOCK_NUMBER)) && d_long(t2) != bnumber)
+          res = vc_err(vc, "Wrong Blocknumber in tx");
 
-      if ((t2 = d_get(t, K_TRANSACTION_INDEX)) && d_int(t2) != (uint32_t) i)
-        res = vc_err(vc, "Wrong Transaction index in tx");
+        if ((t2 = d_get(t, K_TRANSACTION_INDEX)) && d_int(t2) != (uint32_t) i)
+          res = vc_err(vc, "Wrong Transaction index in tx");
+      }
 
       if (h && txh) {
         if (!b_cmp(d_bytes(txh), h))
@@ -85,8 +121,8 @@ in3_ret_t eth_verify_eth_getBlock(in3_vctx_t* vc, bytes_t* block_hash, uint64_t 
         txh = d_next(txh);
       }
       trie_set_value(trie, path, tx);
+      if (!is_raw_tx) b_free(tx);
       b_free(path);
-      b_free(tx);
       if (h) b_free(h);
     }
 

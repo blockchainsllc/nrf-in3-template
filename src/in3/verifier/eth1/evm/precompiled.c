@@ -1,9 +1,44 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "../../../core/util/mem.h"
 #include "../../../core/util/utils.h"
 #include "../../../third-party/crypto/bignum.h"
 #include "../../../third-party/crypto/ecdsa.h"
 #include "../../../third-party/crypto/ripemd160.h"
 #include "../../../third-party/crypto/secp256k1.h"
+#include "../../../third-party/crypto/sha2.h"
 #include "../../../third-party/tommath/tommath.h"
 #include "evm.h"
 #include "gas.h"
@@ -49,7 +84,10 @@ int pre_sha256(evm_t* evm) {
   subgas(G_PRE_SHA256 + (evm->call_data.len + 31) / 32 * G_PRE_SHA256_WORD);
   evm->return_data.data = _malloc(32);
   evm->return_data.len  = 32;
-  sha3_to(&evm->call_data, evm->return_data.data);
+  SHA256_CTX ctx;
+  sha256_Init(&ctx);
+  sha256_Update(&ctx, evm->call_data.data, evm->call_data.len);
+  sha256_Final(&ctx, evm->return_data.data);
   return 0;
 }
 int pre_ripemd160(evm_t* evm) {
@@ -154,6 +192,10 @@ const ecdsa_curve alt_bn128 = {
 
     /* b */ {/*.val =*/{3}}
 
+#if USE_PRECOMPUTED_CP
+    ,
+    {}
+#endif
 };
 
 int pre_ec_add(evm_t* evm) {

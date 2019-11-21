@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "bytes.h"
 #include "log.h"
 #include "mem.h"
@@ -20,12 +54,14 @@ void ba_print(uint8_t* a, size_t l) {
   size_t i;
   if (!a) return;
 
+  in3_log_disable_prefix();
   in3_log_trace(" 0x");
   for (i = 0; i < l; i++) in3_log_trace("%02x", a[i]);
 
   if (l < 9) {
     in3_log_trace(" ( %" PRId64 " ) ", bytes_to_long(a, l));
   }
+  in3_log_enable_prefix();
 }
 
 void b_print(bytes_t* a) {
@@ -36,9 +72,11 @@ void b_print(bytes_t* a) {
   for (i = 0; i < a->len; i++) printk("%02x", a->data[i]);
   printk("\n");
 #else
+  in3_log_disable_prefix();
   in3_log_trace("Bytes: ");
   for (i = 0; i < a->len; i++) in3_log_trace("%02x", a->data[i]);
   in3_log_trace("\n");
+  in3_log_enable_prefix();
 #endif
 }
 
@@ -61,11 +99,11 @@ void b_free(bytes_t* a) {
 }
 
 bytes_t* b_dup(bytes_t* a) {
+  if (a == NULL) return NULL;
   bytes_t* out = _calloc(1, sizeof(bytes_t));
   out->data    = _calloc(1, a->len);
   out->data    = memcpy(out->data, a->data, a->len);
   out->len     = a->len;
-
   return out;
 }
 bytes_t cloned_bytes(bytes_t data) {
@@ -80,17 +118,17 @@ uint8_t b_read_byte(bytes_t* b, size_t* pos) {
   return val;
 }
 uint16_t b_read_short(bytes_t* b, size_t* pos) {
-  uint16_t val = *(uint16_t*) (b->data + *pos);
+  uint16_t val = (uint16_t) bytes_to_int(b->data + *pos, 2);
   *pos += 2;
   return val;
 }
 uint32_t b_read_int(bytes_t* b, size_t* pos) {
-  uint32_t val = *(uint32_t*) (b->data + *pos);
+  uint32_t val = (uint32_t) bytes_to_int(b->data + *pos, 4);
   *pos += 4;
   return val;
 }
 uint64_t b_read_long(bytes_t* b, size_t* pos) {
-  uint64_t val = *(uint64_t*) (b->data + *pos);
+  uint64_t val = bytes_to_long(b->data + *pos, 8);
   *pos += 8;
   return val;
 }
@@ -169,7 +207,7 @@ void bb_write_chars(bytes_builder_t* bb, char* c, int len) {
 }
 void bb_write_dyn_bytes(bytes_builder_t* bb, bytes_t* src) {
   bb_check_size(bb, src->len + 4);
-  *(uint32_t*) (bb->b.data + bb->b.len) = src->len;
+  int_to_bytes(src->len, bb->b.data + bb->b.len);
   memcpy(bb->b.data + bb->b.len + 4, src->data, src->len);
   bb->b.len += src->len + 4;
 }
@@ -185,17 +223,19 @@ void bb_write_raw_bytes(bytes_builder_t* bb, void* ptr, size_t len) {
 }
 void bb_write_int(bytes_builder_t* bb, uint32_t val) {
   bb_check_size(bb, 4);
-  *(uint32_t*) (bb->b.data + bb->b.len) = val;
+  int_to_bytes(val, bb->b.data + bb->b.len);
   bb->b.len += 4;
 }
 void bb_write_long(bytes_builder_t* bb, uint64_t val) {
   bb_check_size(bb, 8);
-  *(uint64_t*) (bb->b.data + bb->b.len) = val;
+  long_to_bytes(val, bb->b.data + bb->b.len);
   bb->b.len += 8;
 }
 void bb_write_short(bytes_builder_t* bb, uint16_t val) {
   bb_check_size(bb, 2);
-  *(uint16_t*) (bb->b.data + bb->b.len) = val;
+  uint8_t* dst = bb->b.data + bb->b.len;
+  *(dst)       = val >> 8 & 0xFF;
+  *(dst + 1)   = val & 0xFF;
   bb->b.len += 2;
 }
 

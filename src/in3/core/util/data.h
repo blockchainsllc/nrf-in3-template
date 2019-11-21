@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 // @PUBLIC_HEADER
 /** @file
  * json-parser.
@@ -88,7 +122,6 @@ d_token_t* d_get(d_token_t* item, const uint16_t key);                          
 d_token_t* d_get_or(d_token_t* item, const uint16_t key1, const uint16_t key2); /**< returns the token with the given propertyname or if not found, tries the other. (only if item is a object) */
 d_token_t* d_get_at(d_token_t* item, const uint32_t index);                     /**< returns the token of an array with the given index */
 d_token_t* d_next(d_token_t* item);                                             /**< returns the next sibling of an array or object */
-d_token_t* d_prev(d_token_t* item);                                             /**< returns the prev sibling of an array or object */
 
 void        d_serialize_binary(bytes_builder_t* bb, d_token_t* t); /**< write the token as binary data into the builder */
 json_ctx_t* parse_binary(bytes_t* data);                           /**< parses the data and returns the context with the token, which needs to be freed after usage! */
@@ -108,10 +141,6 @@ d_token_t*  json_create_object(json_ctx_t* jp);
 d_token_t*  json_create_array(json_ctx_t* jp);
 d_token_t*  json_object_add_prop(d_token_t* object, d_key_t key, d_token_t* value);
 d_token_t*  json_array_add_value(d_token_t* object, d_token_t* value);
-
-int   json_get_int_value(char* js, char* prop);            /**< parses the json and return the value as int. */
-void  json_get_str_value(char* js, char* prop, char* dst); /**< parses the json and return the value as string. */
-char* json_get_json_value(char* js, char* prop);           /**< parses the json and return the value as json-string. */
 
 // Helper function to map string to 2byte keys (only for tests or debugging)
 char* d_get_keystr(d_key_t k);     /**< returns the string for a key. This only works track_keynames was activated before! */

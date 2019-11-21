@@ -57,7 +57,7 @@
 #include "nrf_ble_qwr.h"
 
 #include "in3_ble_transport.h"
-#include "debug.h"
+#include <debug.h>
 #include "nrf_delay.h"
 
 #include "ble_hci.h"

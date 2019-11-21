@@ -1,9 +1,43 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
 #include "usn_api.h"
 #include "../../core/client/context.h"
 #include "../../core/client/keys.h"
 #include "../../core/util/debug.h"
 #include "../../core/util/mem.h"
 #include "../../verifier/eth1/nano/eth_nano.h"
+#include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -68,7 +102,7 @@ static in3_ret_t exec_eth_call(usn_device_conf_t* conf, char* fn_hash, bytes32_t
   p += bytes_to_hex(cdata, l, p);
   p += sprintf(p, "\",\"gas\":\"0x77c810\",\"to\":\"0x");
   p += bytes_to_hex(conf->contract, 20, p);
-  p += sprintf(p, "\"},\"latest\"]");
+  sprintf(p, "\"},\"latest\"]");
 
   // send the request
   in3_ctx_t* ctx = in3_client_rpc_ctx(conf->c, "eth_call", op);
@@ -98,7 +132,7 @@ static in3_ret_t exec_eth_send(usn_device_conf_t* conf, bytes_t data, bytes32_t 
       p += bytes_to_hex(vs, vl, p);
     }
   }
-  p += sprintf(p, "\"}]");
+  sprintf(p, "\"}]");
 
   // send the request
   in3_ctx_t* ctx = in3_client_rpc_ctx(conf->c, "eth_sendTransaction", op);
@@ -310,8 +344,11 @@ static int usn_add_booking(usn_device_t* device, address_t controller, uint64_t 
   booking->rented_from   = rented_from;
   booking->rented_until  = rented_until;
   memcpy(booking->controller, controller, 20);
-  memcpy(booking->props, props, 16);
   memcpy(booking->tx_hash, tx_hash, 32);
+  if (props)
+    memcpy(booking->props, props, 16);
+  else
+    memset(booking->props, 0, 16);
   device->num_bookings++;
   return 1;
 }
@@ -337,6 +374,11 @@ in3_ret_t usn_update_bookings(usn_device_conf_t* conf) {
       // get the number of bookings and manage memory
       if (0 > (res = exec_eth_call(conf, "0x3fce7fcf", device->id, bytes(NULL, 0), tmp, 32))) return res;
       if (device->bookings) _free(device->bookings);
+
+#ifdef __clang_analyzer__
+      // let the analyser know that this can not be garbage values
+      memset(tmp, 0, 128);
+#endif
       int size             = bytes_to_int(tmp + 28, 4);
       device->bookings     = size ? _calloc(sizeof(usn_booking_t), size) : NULL;
       device->num_bookings = 0;
@@ -378,7 +420,7 @@ in3_ret_t usn_update_bookings(usn_device_conf_t* conf) {
       }
       p += sprintf(p, "]");
     }
-    p += sprintf(p, "],\"fromBlock\":\"0x%" PRIx64 "\",\"toBlock\":\"0x%" PRIx64 "\"}]", conf->last_checked_block + 1, current_block);
+    sprintf(p, "],\"fromBlock\":\"0x%" PRIx64 "\",\"toBlock\":\"0x%" PRIx64 "\"}]", conf->last_checked_block + 1, current_block);
 
     // send the request
     ctx = in3_client_rpc_ctx(conf->c, "eth_getLogs", params);
@@ -531,6 +573,10 @@ in3_ret_t usn_rent(in3_t* c, address_t contract, address_t token, char* url, uin
   memcpy(params + 4, purl.device_id, 32);
   int_to_bytes(seconds, params + 64);
   if (token) memcpy(params + 80, token, 20);
+#ifdef __clang_analyzer__
+  // let the analyser know that this can not be garbage values
+  memset(price, 0, 32);
+#endif
 
   res = exec_eth_send(&conf, bytes(params, 100), price, tx_hash);
   if (res < 0) return res;

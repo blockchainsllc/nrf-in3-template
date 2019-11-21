@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "filter.h"
 #include "../../../core/client/context.h"
 #include "../../../core/client/keys.h"
@@ -81,6 +115,25 @@ bool filter_opt_valid(d_token_t* tx_params) {
   return true;
 }
 
+char* filter_opt_set_fromBlock(char* fopt, uint64_t fromBlock) {
+  size_t pos, len;
+  char   blockstr[40]; // buffer to hold - "fromBlock": "<21 chars for hex repr (upto UINT64_MAX)>",
+  char*  tok = str_find(fopt, "\"fromBlock\"");
+  if (tok) {
+    sprintf(blockstr, "0x%" PRIx64 "", fromBlock);
+    tok = str_find(str_find(tok + 1, ":") + 1, "\"");
+    pos = tok - fopt + 1;
+    tok = str_find(tok + 1, "\"");
+    len = tok - fopt - pos;
+  } else {
+    sprintf(blockstr, "\"fromBlock\":\"0x%" PRIx64 "\"%c", fromBlock, str_find(fopt, "\"") ? ',' : '\0');
+    tok = str_find(fopt, "{");
+    pos = fopt - tok + 1;
+    len = 0;
+  }
+  return str_replace_pos(fopt, pos, len, blockstr);
+}
+
 static void filter_release(in3_filter_t* f) {
   if (f && f->options)
     _free(f->options);
@@ -149,6 +202,7 @@ bool filter_remove(in3_t* in3, size_t id) {
   // We don't realloc the array here, instead we simply set this slot to NULL to indicate
   // that it has been removed and reuse it in add_filter()
   in3_filter_t* f = in3->filters->array[id - 1];
+  if (!f) return false;
   f->release(f);
   in3->filters->array[id - 1] = NULL;
   return true;
@@ -175,21 +229,27 @@ in3_ret_t filter_get_changes(in3_ctx_t* ctx, size_t id, sb_t* result) {
   char*         fopt = f->options;
   switch (f->type) {
     case FILTER_EVENT: {
-      sb_t* params = sb_new("[");
-      sb_add_chars(params, fopt);
-      ctx_ = in3_client_rpc_ctx(in3, "eth_getLogs", sb_add_char(params, ']')->data);
-      sb_free(params);
-      if ((res = ctx_get_error(ctx_, 0)) != IN3_OK) {
-        ctx_set_error(ctx, ctx_->error, res);
+      if (f->last_block > blkno) {
+        sb_add_chars(result, "[]");
+      } else {
+        sb_t* params = sb_new("[");
+        char* fopt_  = filter_opt_set_fromBlock(fopt, f->last_block);
+        sb_add_chars(params, fopt_);
+        ctx_ = in3_client_rpc_ctx(in3, "eth_getLogs", sb_add_char(params, ']')->data);
+        sb_free(params);
+        _free(fopt_);
+        if ((res = ctx_get_error(ctx_, 0)) != IN3_OK) {
+          ctx_set_error(ctx, ctx_->error, res);
+          free_ctx(ctx_);
+          return ctx_set_error(ctx, "internal error, call to eth_getLogs failed", res);
+        }
+        d_token_t* r  = d_get(ctx_->responses[0], K_RESULT);
+        char*      jr = d_create_json(r);
+        sb_add_chars(result, jr);
+        _free(jr);
         free_ctx(ctx_);
-        return ctx_set_error(ctx, "internal error, call to eth_getLogs failed", res);
+        f->last_block = blkno + 1;
       }
-      d_token_t* r  = d_get(ctx_->responses[0], K_RESULT);
-      char*      jr = d_create_json(r);
-      sb_add_chars(result, jr);
-      _free(jr);
-      free_ctx(ctx_);
-      f->last_block = blkno + 1;
       return IN3_OK;
     }
     case FILTER_BLOCK:

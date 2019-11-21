@@ -55,7 +55,7 @@
 #include "nrf_log_default_backends.h"
 
 #include "in3_ble_transport.h"
-#include "debug.h"
+#include <debug.h>
 
 #include "ble_hci.h"
 #include "ble_advertising.h"

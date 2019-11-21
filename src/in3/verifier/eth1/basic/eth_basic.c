@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "eth_basic.h"
 #include "../../../core/client/context.h"
 #include "../../../core/client/keys.h"
@@ -74,11 +108,20 @@ in3_ret_t eth_handle_intern(in3_ctx_t* ctx, in3_response_t** response) {
     // get the transaction-object
     d_token_t* tx_params = d_get(req, K_PARAMS);
     if (!tx_params || d_type(tx_params + 1) != T_OBJECT) return ctx_set_error(ctx, "invalid params", IN3_EINVAL);
-    if (!ctx->client->signer) return ctx_set_error(ctx, "no signer set", IN3_EINVAL);
 
     // sign it.
     bytes_t raw = sign_tx(tx_params + 1, ctx);
-    if (!raw.len) return ctx_set_error(ctx, "error signing the transaction", IN3_EINVAL);
+    if (!raw.len) {
+      switch (in3_ctx_state(ctx->required)) {
+        case CTX_ERROR:
+          return IN3_EUNKNOWN;
+        case CTX_WAITING_FOR_REQUIRED_CTX:
+        case CTX_WAITING_FOR_RESPONSE:
+          return IN3_WAITING;
+        case CTX_SUCCESS:
+          return ctx_set_error(ctx, "error signing the transaction", IN3_EINVAL);
+      }
+    }
 
     // build the RPC-request
     uint64_t id = d_get_longk(req, K_ID);

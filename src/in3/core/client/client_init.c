@@ -1,9 +1,44 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "../util/data.h"
 #include "../util/log.h"
 #include "../util/mem.h"
 #include "cache.h"
 #include "client.h"
 #include "nodelist.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -41,7 +76,7 @@ static void initChain(in3_chain_t* chain, uint64_t chainId, char* contract, char
   chain->initAddresses  = NULL;
   chain->lastBlock      = 0;
   chain->contract       = hex2byte_new_bytes(contract, 40);
-  chain->needsUpdate    = chainId == 0xffff ? 0 : 1;
+  chain->needsUpdate    = chainId == ETH_CHAIN_ID_LOCAL ? 0 : 1;
   chain->nodeList       = _malloc(sizeof(in3_node_t) * boot_node_count);
   chain->nodeListLength = boot_node_count;
   chain->weights        = _malloc(sizeof(in3_node_weight_t) * boot_node_count);
@@ -64,7 +99,7 @@ static void initNode(in3_chain_t* chain, int node_index, char* address, char* ur
   node->index      = node_index;
   node->capacity   = 1;
   node->deposit    = 0;
-  node->props      = chain->chainId == 0xFFFF ? 0x0 : 0xFF;
+  node->props      = chain->chainId == ETH_CHAIN_ID_LOCAL ? 0x0 : 0xFF;
   node->url        = _malloc(strlen(url) + 1);
   memcpy(node->url, url, strlen(url) + 1);
 
@@ -83,7 +118,7 @@ static void in3_client_init(in3_t* c) {
   c->use_binary         = 0;
   c->use_http           = 0;
   c->includeCode        = 0;
-  c->chainId            = 0x01; // mainnet
+  c->chainId            = ETH_CHAIN_ID_MAINNET; // mainnet
   c->key                = NULL;
   c->finality           = 0;
   c->max_attempts       = 3;
@@ -94,65 +129,50 @@ static void in3_client_init(in3_t* c) {
   c->proof              = PROOF_STANDARD;
   c->replaceLatestBlock = 0;
   c->requestCount       = 1;
-  c->chainsCount        = 8;
+  c->chainsCount        = 5;
   c->chains             = _malloc(sizeof(in3_chain_t) * c->chainsCount);
   c->filters            = NULL;
 
   // mainnet
-  initChain(c->chains, 0x01, "2736D225f85740f42D17987100dc8d58e9e16252", NULL, 1, 2, CHAIN_ETH, NULL);
-  initNode(c->chains, 0, "8f354b72856e516f1e931c97d1ed3bf1709f38c9", "https://in3.slock.it/mainnet/nd-3");
-  initNode(c->chains, 1, "243D5BB48A47bEd0F6A89B61E4660540E856A33D", "https://in3.slock.it/mainnet/nd-5");
-
-  // tobalaba
-  initChain(c->chains + 1, 0x044d, "845E484b505443814B992Bf0319A5e8F5e407879", NULL, 1, 2, CHAIN_ETH, TOBALABA_SPEC);
-  initNode(c->chains + 1, 0, "8f354b72856e516f1e931c97d1ed3bf1709f38c9", "https://in3.slock.it/tobalaba/nd-3");
-  initNode(c->chains + 1, 1, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.slock.it/tobalaba/nd-1");
-
-  // evan
-  initChain(c->chains + 2, 0x04b1, "85613723dB1Bc29f332A37EeF10b61F8a4225c7e", NULL, 1, 2, CHAIN_ETH, NULL);
-  initNode(c->chains + 2, 0, "eaC4B82273e828878fD765D993800891bA2E3475", "http://52.47.61.24:8500");
-  initNode(c->chains + 2, 1, "243D5BB48A47bEd0F6A89B61E4660540E856A33A", "https://in3.slock.it/evan/nd-5");
+  initChain(c->chains, 0x01, "64abe24afbba64cae47e3dc3ced0fcab95e4edd5", "423dd84f33a44f60e5d58090dcdcc1c047f57be895415822f211b8cd1fd692e3", 2, 2, CHAIN_ETH, NULL);
+  initNode(c->chains, 0, "45d45e6ff99e6c34a235d263965910298985fcfe", "https://in3-v2.slock.it/mainnet/nd-1");
+  initNode(c->chains, 1, "1fe2e9bf29aa1938859af64c413361227d04059a", "https://in3-v2.slock.it/mainnet/nd-2");
 
 #ifdef IN3_STAGING
   // kovan
-  initChain(c->chains + 3, 0x2a, "a412D519199C3c0ebaea3A9f73f1f89A935F9F14", "e0d15dd269e198e35a1bc1d5ef910ab66cbf81e1617ac1d640428863e10db562", 2, 2, CHAIN_ETH, NULL);
-  initNode(c->chains + 3, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.stage.slock.it/kovan/nd-1");
-  initNode(c->chains + 3, 1, "17cdf9ec6dcae05c5686265638647e54b14b41a2", "https://in3.stage.slock.it/kovan/nd-2");
+  initChain(c->chains + 1, 0x2a, "0604014f2a5fdfafce3f2ec10c77c31d8e15ce6f", "d440f01322c8529892c204d3705ae871c514bafbb2f35907832a07322e0dc868", 2, 2, CHAIN_ETH, NULL);
+  initNode(c->chains + 1, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.stage.slock.it/kovan/nd-1");
+  initNode(c->chains + 1, 1, "17cdf9ec6dcae05c5686265638647e54b14b41a2", "https://in3.stage.slock.it/kovan/nd-2");
 #else
   // kovan
-  initChain(c->chains + 3, 0x2a, "27a37a1210df14f7e058393d026e2fb53b7cf8c1", NULL, 1, 2, CHAIN_ETH, NULL);
-  initNode(c->chains + 3, 0, "8f354b72856e516f1e931c97d1ed3bf1709f38c9", "https://in3.slock.it/kovan/nd-3");
-  initNode(c->chains + 3, 1, "243D5BB48A47bEd0F6A89B61E4660540E856A33D", "https://in3.slock.it/kovan/nd-5");
+  initChain(c->chains + 1, 0x2a, "33f55122c21cc87b539e7003f7ab16229bc3af69", "97a2d1de242ffd28c95eed23a336578c406b5966daf2818f0bd1c310f7292307", 2, 2, CHAIN_ETH, NULL);
+  initNode(c->chains + 1, 0, "45d45e6ff99e6c34a235d263965910298985fcfe", "https://in3-v2.slock.it/kovan/nd-1");
+  initNode(c->chains + 1, 1, "1fe2e9bf29aa1938859af64c413361227d04059a", "https://in3-v2.slock.it/kovan/nd-2");
 #endif
 
   // ipfs
-  initChain(c->chains + 4, 0x7d0, "f0fb87f4757c77ea3416afe87f36acaa0496c7e9", NULL, 1, 2, CHAIN_IPFS, NULL);
-  initNode(c->chains + 4, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.slock.it/ipfs/nd-1");
-  initNode(c->chains + 4, 1, "243D5BB48A47bEd0F6A89B61E4660540E856A33D", "https://in3.slock.it/ipfs/nd-5");
-
-  // volta
-  initChain(c->chains + 5, 0x12046, "8d8Fd38311d57163524478404C75008fBEaACccB", NULL, 1, 2, CHAIN_ETH, NULL);
-  initNode(c->chains + 5, 0, "784bfa9eb182C3a02DbeB5285e3dBa92d717E07a", "https://in3.slock.it/volta/nd-1");
-  initNode(c->chains + 5, 1, "8f354b72856e516f1e931c97d1ed3bf1709f38c9", "https://in3.slock.it/volta/nd-3");
+  initChain(c->chains + 2, 0x7d0, "f0fb87f4757c77ea3416afe87f36acaa0496c7e9", NULL, 1, 2, CHAIN_IPFS, NULL);
+  initNode(c->chains + 2, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.slock.it/ipfs/nd-1");
+  initNode(c->chains + 2, 1, "243D5BB48A47bEd0F6A89B61E4660540E856A33D", "https://in3.slock.it/ipfs/nd-5");
 
   // local
-  initChain(c->chains + 6, 0xFFFF, "f0fb87f4757c77ea3416afe87f36acaa0496c7e9", NULL, 1, 1, CHAIN_ETH, NULL);
-  initNode(c->chains + 6, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "http://localhost:8545");
+  initChain(c->chains + 3, 0xFFFF, "f0fb87f4757c77ea3416afe87f36acaa0496c7e9", NULL, 1, 1, CHAIN_ETH, NULL);
+  initNode(c->chains + 3, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "http://localhost:8545");
 
 #ifdef IN3_STAGING
   // goerli
-  initChain(c->chains + 7, 0x05, "a412D519199C3c0ebaea3A9f73f1f89A935F9F14", "2889c51c601786ec9a803859379816fbabcfc843b36a3bfca27af54257ab70d2", 2, 2, CHAIN_ETH, NULL);
-  initNode(c->chains + 7, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.stage.slock.it/goerli/nd-1");
-  initNode(c->chains + 7, 1, "17cdf9ec6dcae05c5686265638647e54b14b41a2", "https://in3.stage.slock.it/goerli/nd-2");
+  initChain(c->chains + 4, 0x05, "d7a42d93eab96fabb9a481ea36fa2f72df8741cb", "19d65866bf52970ec1679c0d70d9ffd75358f78db8235e38063b1b08e74a055f", 2, 2, CHAIN_ETH, NULL);
+  initNode(c->chains + 4, 0, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.stage.slock.it/goerli/nd-1");
+  initNode(c->chains + 4, 1, "17cdf9ec6dcae05c5686265638647e54b14b41a2", "https://in3.stage.slock.it/goerli/nd-2");
 #else
   // goerli
-  initChain(c->chains + 7, 0x05, "85613723dB1Bc29f332A37EeF10b61F8a4225c7e", NULL, 1, 2, CHAIN_ETH, NULL);
-  initNode(c->chains + 7, 0, "8f354b72856e516f1e931c97d1ed3bf1709f38c9", "https://in3.slock.it/goerli/nd-3");
-  initNode(c->chains + 7, 1, "784bfa9eb182c3a02dbeb5285e3dba92d717e07a", "https://in3.slock.it/goerli/nd-1");
+  initChain(c->chains + 4, 0x05, "fea298b288d232a256ae0ad5941e5c890b1db691", "a551fe03f855370f0fca881f5f2f6b8f7731a92e371c4de5f5c610833881059c", 2, 2, CHAIN_ETH, NULL);
+  initNode(c->chains + 4, 0, "45d45e6ff99e6c34a235d263965910298985fcfe", "https://in3-v2.slock.it/goerli/nd-1");
+  initNode(c->chains + 4, 1, "1fe2e9bf29aa1938859af64c413361227d04059a", "https://in3-v2.slock.it/goerli/nd-2");
 #endif
 }
 
-static in3_chain_t* find_chain(in3_t* c, uint64_t chain_id) {
+in3_chain_t* find_chain(in3_t* c, uint64_t chain_id) {
   for (int i = 0; i < c->chainsCount; i++) {
     if (c->chains[i].chainId == chain_id) return &c->chains[i];
   }
@@ -342,7 +362,7 @@ in3_ret_t in3_configure(in3_t* c, char* config) {
       c->requestCount = (uint8_t) d_int(iter.token);
     else if (iter.token->key == key("rpc")) {
       c->proof        = PROOF_NONE;
-      c->chainId      = 0xFFFF;
+      c->chainId      = ETH_CHAIN_ID_LOCAL;
       c->requestCount = 1;
       in3_node_t* n   = find_chain(c, c->chainId)->nodeList;
       if (n->url) _free(n);
@@ -355,25 +375,32 @@ in3_ret_t in3_configure(in3_t* c, char* config) {
     } else if (iter.token->key == key("servers") || iter.token->key == key("nodes"))
       for (d_iterator_t ct = d_iter(iter.token); ct.left; d_iter_next(&ct)) {
         // register chain
-        uint64_t     chain_id = hex2long(d_get_keystr(ct.token->key));
+        uint64_t     chain_id = c_to_long(d_get_keystr(ct.token->key), -1);
         in3_chain_t* chain    = find_chain(c, chain_id);
         if (!chain) {
           bytes_t* contract_t  = d_get_byteskl(ct.token, key("contract"), 20);
-          bytes_t* registry_id = d_get_byteskl(ct.token, key("regiistryId"), 32);
+          bytes_t* registry_id = d_get_byteskl(ct.token, key("registryId"), 32);
           if (!contract_t || !registry_id) {
             res = IN3_EINVAL;
             goto cleanup;
           }
           if ((res = in3_client_register_chain(c, chain_id, CHAIN_ETH, contract_t->data, registry_id->data, 2, NULL)) != IN3_OK) goto cleanup;
+          chain = find_chain(c, chain_id);
+          assert(chain != NULL);
         }
 
         // chain_props
         for (d_iterator_t cp = d_iter(ct.token); cp.left; d_iter_next(&cp)) {
           if (cp.token->key == key("contract"))
             memcpy(chain->contract->data, cp.token->data, cp.token->len);
-          else if (cp.token->key == key("registryId"))
-            memcpy(chain->registry_id, cp.token->data, cp.token->len);
-          else if (cp.token->key == key("needsUpdate"))
+          else if (cp.token->key == key("registryId")) {
+            bytes_t data = d_to_bytes(cp.token);
+            if (data.len != 32 || !data.data) {
+              res = IN3_EINVAL;
+              goto cleanup;
+            } else
+              memcpy(chain->registry_id, data.data, 32);
+          } else if (cp.token->key == key("needsUpdate"))
             chain->needsUpdate = d_int(cp.token) ? true : false;
           else if (cp.token->key == key("nodeList")) {
             if (in3_client_clear_nodes(c, chain_id) < 0) goto cleanup;

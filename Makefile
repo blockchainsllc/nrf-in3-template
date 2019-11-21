@@ -2,16 +2,13 @@ PROJECT_NAME     := nrf_in3
 TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := build
 
-GNU_INSTALL_ROOT := /Users/paul/software/in3/gcc-arm/bin/
-SDK_ROOT := /Users/paul/software/embedded/nRF5_SDK_15.3.0
-
 PROJ_DIR := .
 SRC_DIR := $(PROJ_DIR)/src
 INC_DIR := $(PROJ_DIR)/include
 LIB_DIR := $(PROJ_DIR)/lib
 
-# CHAIN ID are dependable on IN3 contract deployed on said chain.
-# Check https://git.slock.it/in3/c/in3-core/blob/develop/src/core/client/client_init.c
+# CHAIN ID are dependable on in3 contract deployed on said chain.
+# Check https://git.slock.it/in3/src/c/in3-core/blob/develop/src/core/client/client_init.c
 # 0x1: Mainnet, the Ethereum public PoW network
 # 0x5: Goerli, the public cross-client PoA testnet
 # 0x42: Kovan, the public Parity-only PoA testnet
@@ -21,6 +18,8 @@ IN3_CHAIN_ID := 0x5
 IN3_VERSION := FULL
 # UART | BLE
 IN3_TRANSPORT := UART
+# specify the branch to extract the source code from
+IN3_BRANCH := develop
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/nrf_in3.ld
@@ -32,6 +31,7 @@ SRC_FILES += \
 	$(wildcard $(SRC_DIR)/transport/mock/*.c) \
 	$(wildcard $(SRC_DIR)/transport/uart/*.c) \
 	$(wildcard $(SRC_DIR)/in3/api/eth1/*.c) \
+	$(wildcard $(SRC_DIR)/in3/api/usn/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/client/*.c) \
 	$(wildcard $(SRC_DIR)/in3/core/util/*.c) \
 	$(wildcard $(SRC_DIR)/in3/third-party/crypto/*.c) \
@@ -185,19 +185,13 @@ SRC_FILES += \
 
 # Include folders common to all targets
 INC_FOLDERS += \
+	$(INC_DIR) \
   $(SDK_ROOT)/external/fprintf \
   $(SRC_DIR)/transport/ble \
 	$(SRC_DIR)/transport/mock \
 	$(SRC_DIR)/transport/uart \
-	$(SRC_DIR)/in3/api/eth1 \
-	$(SRC_DIR)/in3/core/client \
+ 	$(INC_DIR)/in3 \
 	$(SRC_DIR)/in3/core/util \
-	$(SRC_DIR)/in3/third-party/crypto \
-	$(SRC_DIR)/in3/third-party/tommath \
-	$(SRC_DIR)/in3/verifier/eth1/basic \
-	$(SRC_DIR)/in3/verifier/eth1/nano \
-	$(SRC_DIR)/in3/verifier/eth1/evm \
-	$(SRC_DIR)/in3/verifier/eth1/full \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
   $(SDK_ROOT)/external/nrf_cc310/include \
   $(SDK_ROOT)/components/libraries/atomic \
@@ -373,7 +367,7 @@ CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DDEBUG
-CFLAGS += -D__NRF_FREERTOS__
+CFLAGS += -DSEGGER_RTT
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DMBEDTLS_CONFIG_FILE=\"nrf_crypto_mbedtls_config.h\"
 CFLAGS += -DNRF52840_XXAA
@@ -434,7 +428,8 @@ LIB_FILES += -lc -lnosys -lm
 .PHONY: default help
 
 # Default target - first one defined
-default: check-env nrf52840_xxaa
+default: check_env nrf52840_xxaa
+
 # Print all targets that can be built
 help:
 	@echo following targets are available:
@@ -449,7 +444,7 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: flash erase flash_softdevice debug debug-server sdk_config check-env
+.PHONY: flash erase flash_softdevice debug debug-server sdk_config check_env update_in3
 
 # Flash the program
 flash: default
@@ -466,6 +461,21 @@ flash_softdevice:
 	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex --sectorerase
 	nrfjprog -f nrf52 --reset
 
+update_in3:
+	if [ -d "$(SRC_DIR)/in3" ]; \
+		then \
+			rm -rf $(SRC_DIR)/in3; \
+	fi
+	git clone https://github.com/slockit/in3-c.git $(SRC_DIR)/in3-c; \
+	cd $(SRC_DIR)/in3-c && git checkout $(IN3_BRANCH)
+	mkdir $(SRC_DIR)/in3
+	cp -rf $(SRC_DIR)/in3-c/src/. $(SRC_DIR)/in3/
+	cp -rf $(SRC_DIR)/in3-c/include/in3 $(INC_DIR)/
+	rm -rf $(SRC_DIR)/in3-c
+	rm -rf $(SRC_DIR)/in3/bindings
+	rm -rf $(SRC_DIR)/in3/cmd
+	rm -rf $(SRC_DIR)/in3/transport
+
 debug-server:
 	JLinkGDBServerCL -device nrf52840_xxaa -if swd -port 2331
 
@@ -477,7 +487,10 @@ CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
 
-check-env:
+check_env:
 ifndef SDK_ROOT
-$(error Set environment variable 'SDK_ROOT' conataining the NRF5 SDK folder path)
+$(error Set environment variable 'SDK_ROOT' containing the NRF5 SDK folder path)
+endif
+ifndef GNU_INSTALL_ROOT
+$(error Set environment variable 'GNU_INSTALL_ROOT' containing the toolchain folder path)
 endif

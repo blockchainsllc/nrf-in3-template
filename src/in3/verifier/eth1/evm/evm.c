@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "evm.h"
 #include "../../../core/client/context.h"
 #include "../../../core/util/data.h"
@@ -94,7 +128,7 @@ int evm_stack_pop_ref(evm_t* evm, uint8_t** dst) {
 int evm_stack_get_ref(evm_t* evm, uint8_t pos, uint8_t** dst) {
   if (evm->stack_size - pos < 0 || pos < 1) return EVM_ERROR_EMPTY_STACK; // stack empty
   uint32_t p = evm->stack.b.len;
-  uint8_t  i, l;
+  uint8_t  i, l = 0;
   for (i = 0; i < pos; i++) {
     l = evm->stack.b.data[p - 1];
     p -= l + 1;
@@ -231,7 +265,7 @@ void evm_print_op(evm_t* evm, uint64_t last_gas, uint32_t pos) {
     case 0x12: __code("SLT");
     case 0x13: __code("SGT");
     case 0x14: __code("EQ");
-    case 0x15: __code("IS_ZERO");
+    case 0x15: __code("ISZERO");
     case 0x16: __code("AND");
     case 0x17: __code("OR");
     case 0x18: __code("XOR");
@@ -246,9 +280,9 @@ void evm_print_op(evm_t* evm, uint64_t last_gas, uint32_t pos) {
     case 0x32: __code("ORIGIN");
     case 0x33: __code("CALLER");
     case 0x34: __code("CALLVALUE");
-    case 0x35: __code("CALLDATALOAD");
+    case 0x35: __code("CALLDATALOAD ");
     case 0x36: __code("CALLDATA_SIZE");
-    case 0x37: __code("CALLDATACOPY");
+    case 0x37: __code("CALLDATACOPY ");
     case 0x38: __code("CODESIZE");
     case 0x39: __code("CODECOPY");
     case 0x3a: __code("GASPRICE");
@@ -475,30 +509,36 @@ int evm_execute(evm_t* evm) {
   }
 }
 
-int evm_run(evm_t* evm) {
+int evm_run(evm_t* evm, address_t code_address) {
 
   INIT_GAS(evm);
 
   // for precompiled we simply execute it there
-  if (evm_is_precompiled(evm, evm->account))
-    return evm_run_precompiled(evm, evm->account);
+  if (evm_is_precompiled(evm, code_address))
+    return evm_run_precompiled(evm, code_address);
   // timeout is simply used in case we don't use gas to make sure we don't run a infite loop.
   uint32_t timeout = 0xFFFFFFFF;
   int      res     = 0;
+#ifdef DEBUG
+  uint32_t last     = 0;
+  uint64_t last_gas = 0;
+#endif
   // inital state
   evm->state = EVM_STATE_RUNNING;
 
   // loop opcodes
   while (res >= 0 && evm->state == EVM_STATE_RUNNING && evm->pos < evm->code.len) {
+    EVM_DEBUG_BLOCK({
+      last     = evm->pos;
+      last_gas = KEEP_TRACK_GAS(evm);
+    });
+
     // execute the opcode
     res = evm_execute(evm);
     // display the result of the opcode (only if the debug flag is set)
 #ifdef EVM_GAS
     // debug gas output
-    EVM_DEBUG_BLOCK({
-                            uint32_t last = evm->pos;
-                            uint64_t last_gas = KEEP_TRACK_GAS(evm);
-                            evm_print_stack(evm, last_gas, last); });
+    EVM_DEBUG_BLOCK({ evm_print_stack(evm, last_gas, last); });
 #endif
     if ((timeout--) == 0) return EVM_ERROR_TIMEOUT;
   }

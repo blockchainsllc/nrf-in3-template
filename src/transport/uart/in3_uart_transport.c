@@ -14,7 +14,7 @@
 
 //IN3 Stuff
 #include <debug.h>
-#include "client.h"
+#include <in3/client.h>
 
 #include <in3_uart_transport.h>
 

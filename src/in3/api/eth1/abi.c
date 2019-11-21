@@ -1,16 +1,43 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "abi.h"
 #include "../../core/util/bytes.h"
 #include "../../core/util/data.h"
 #include "../../core/util/mem.h"
 #include "../../core/util/utils.h"
 #include <string.h>
-
-//balanceOf(address):(uint256)
-//balanceOf(address):()
-//
-// in3 call 0x123455345 balanceOf(address,(uint,bool)):uint256 0x2342342341
-// in3 call 0x123455345 (uint256):balanceOf address:0x2342342341 uint256:123 bytes32:0x23432532452345
-// in3 call 0x123455345 balanceOf:uint256 0x2342342341:address 123:uint256 0x23432532452345:bytes32 "testest"
 
 static int add_error(call_request_t* req, char* error) {
   req->error = error;
@@ -249,7 +276,7 @@ static int encode(call_request_t* req, d_token_t* data, var_t* tuple, int head_p
   d_token_t*       d         = data;
 
   if (is_dynamic(tuple) && tail_pos > head_pos) {
-    write_uint256(req, head_pos, tail_pos - head_pos);
+    write_uint256(req, head_pos, tail_pos - 4 /*head_pos*/);
     if (encode(req, data, tuple, tail_pos, -1) < 0) return -1;
     return head_pos + 32;
   }
@@ -343,6 +370,12 @@ d_token_t* get_data(json_ctx_t* ctx, var_t* t, bytes_t data, int* offset) {
       res = json_create_bytes(ctx, tmp);
       *offset += 32;
       break;
+    case A_BOOL:
+      tmp = bytes(data.data + dst, 32);
+      b_optimize_len(&tmp);
+      res = json_create_bool(ctx, tmp.len > 1 || (tmp.len == 1 && *tmp.data));
+      *offset += 32;
+      break;
     case A_ADDRESS:
       res = json_create_bytes(ctx, bytes(data.data + dst + 12, 20));
       *offset += 32;
@@ -363,7 +396,7 @@ d_token_t* get_data(json_ctx_t* ctx, var_t* t, bytes_t data, int* offset) {
         res      = json_create_string(ctx, tmp);
       } else
         res = json_create_bytes(ctx, bytes(data.data + dst, len));
-      *offset += t->type_len ? word_size(len) : 32;
+      *offset += t->type_len ? (word_size(len) << 5) : 32;
 
       break;
 

@@ -1,3 +1,37 @@
+/*******************************************************************************
+ * This file is part of the Incubed project.
+ * Sources: https://github.com/slockit/in3-c
+ * 
+ * Copyright (C) 2018-2019 slock.it GmbH, Blockchains LLC
+ * 
+ * 
+ * COMMERCIAL LICENSE USAGE
+ * 
+ * Licensees holding a valid commercial license may use this file in accordance 
+ * with the commercial license agreement provided with the Software or, alternatively, 
+ * in accordance with the terms contained in a written agreement between you and 
+ * slock.it GmbH/Blockchains LLC. For licensing terms and conditions or further 
+ * information please contact slock.it at in3@slock.it.
+ * 	
+ * Alternatively, this file may be used under the AGPL license as follows:
+ *    
+ * AGPL LICENSE USAGE
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free Software 
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+ * PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+ * [Permissions of this strong copyleft license are conditioned on making available 
+ * complete source code of licensed works and modifications, which include larger 
+ * works using a licensed work, under the same license. Copyright and license notices 
+ * must be preserved. Contributors provide an express grant of patent rights.]
+ * You should have received a copy of the GNU Affero General Public License along 
+ * with this program. If not, see <https://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
 #include "data.h"
 #include "bytes.h"
 #include "mem.h"
@@ -250,10 +284,6 @@ d_token_t* d_next(d_token_t* item) {
   return item == NULL ? NULL : item + d_token_size(item);
 }
 
-d_token_t* d_prev(d_token_t* item) {
-  return item == NULL ? NULL : item - d_token_size(item);
-}
-
 char next_char(json_ctx_t* jp) {
   while (true) {
     switch (*jp->c) {
@@ -308,6 +338,12 @@ int parse_number(json_ctx_t* jp, d_token_t* item) {
     if (jp->c[i] >= '0' && jp->c[i] <= '9')
       u64Val = u64Val * 10 + (jp->c[i] - '0');
     else {
+      // if the value is a float (which we don't support yet), we keep on parsing, but ignoring the rest of the numbers
+      if (jp->c[i] == '.') {
+        i++;
+        while (jp->c[i] >= '0' && jp->c[i] <= '9') i++;
+      }
+
       jp->c += i;
 
       if ((u64Val & 0xfffffffff0000000) == 0)
@@ -471,7 +507,7 @@ int parse_object(json_ctx_t* jp, int parent, uint32_t key) {
 
 void free_json(json_ctx_t* jp) {
   if (!jp || jp->result == NULL) return;
-  if (jp->allocated) {
+  if (!d_is_binary_ctx(jp)) {
     size_t i;
     for (i = 0; i < jp->len; i++) {
       if (jp->result[i].data != NULL && d_type(jp->result + i) < 2)
@@ -548,7 +584,7 @@ char* d_create_json(d_token_t* item) {
       return d_int(item) ? _strdupn("true", 4) : _strdupn("false", 5);
     case T_INTEGER:
       dst = _malloc(16);
-      sprintf(dst, "0x%x", d_int(item));
+      sprintf(dst, "\"0x%x\"", d_int(item));
       return dst;
     case T_NULL:
       return _strdupn("null", 4);
@@ -577,64 +613,6 @@ str_range_t d_to_json(d_token_t* item) {
   s.data = (char*) item->data;
   s.len  = find_end(s.data);
   return s;
-}
-
-// util fast parse
-int json_get_int_value(char* js, char* prop) {
-  json_ctx_t* ctx = parse_json(js);
-  if (ctx) {
-    int res = d_get_int(ctx->result, prop);
-    free_json(ctx);
-    return res;
-  }
-  return -1;
-}
-
-void json_get_str_value(char* js, char* prop, char* dst) {
-  *dst          = 0; // preset returned string as empty string
-  d_token_t*  t = NULL;
-  str_range_t s;
-
-  json_ctx_t* ctx = parse_json(js);
-  if (ctx) {
-    t = d_get(ctx->result, key(prop));
-    switch (d_type(t)) {
-      case T_STRING:
-        strcpy(dst, d_string(t));
-        break;
-      case T_BYTES:
-        dst[0] = '0';
-        dst[1] = 'x';
-        bytes_to_hex(t->data, t->len, dst + 2);
-        dst[t->len * 2 + 2] = 0;
-        break;
-      case T_ARRAY:
-      case T_OBJECT:
-        s = d_to_json(t);
-        memcpy(dst, s.data, s.len);
-        dst[s.len] = 0;
-        break;
-      case T_BOOLEAN:
-        strcpy(dst, d_int(t) ? "true" : "false");
-        break;
-      case T_INTEGER:
-        sprintf(dst, "0x%x", d_int(t));
-        break;
-      case T_NULL:
-        strcpy(dst, "null");
-    }
-    free_json(ctx);
-  }
-}
-
-char* json_get_json_value(char* js, char* prop) {
-  json_ctx_t* ctx = parse_json(js);
-  if (ctx) {
-    char* c = d_create_json(d_get(ctx->result, key(prop)));
-    free_json(ctx);
-    return c;
-  }
-  return NULL;
 }
 
 //    bytes-parser

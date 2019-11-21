@@ -10,7 +10,7 @@ Boiler Plate for IN3 projects on the Nordic nRF52840 using Nordic SDK and Softde
  6. Write Nordic Softdevice with `make flash_softdevice`
  7. Write in3 firmware with `make flash`
  8. Connect the device to other capable device with internet connection accordingly to the loaded transport module
- 
+
  ##### Compilation and Flashing
  ```
  make clean
@@ -19,21 +19,22 @@ Boiler Plate for IN3 projects on the Nordic nRF52840 using Nordic SDK and Softde
  make flash_softdevice
  make flash
  ```
- 
+
 ##### All Make commands
 - `make flash`: Runs `nrfjprog` to program the device with latest firmware
 - `make erase`: Runs `nrfjprog` to erase the device
 - `make flash_softdevice`: Runs `nrfjprog` to program the device with latest [softdevice](https://www.nordicsemi.com/Software-and-Tools/Software/S140) hex
 - `make debug-server`: Runs Segger J-Link Debugger Server
-- `make debug`: Uses `gcc` to compile the program and execute debugging commands 
+- `make debug`: Uses `gcc` to compile the program and execute debugging commands
 - `make sdk_config`: Uses `java` and [CMSIS Configuration Wizard](https://infocenter.nordicsemi.com/topic/com.nordic.infocenter.sdk5.v15.2.0/sdk_config.html) to allows users to easily configure ARM source files without using the Keil uVision IDE. Loads `config/sdk_config.h` from sources.
-- `make check-env`: Check for NRF5 SDK folder
- 
+- `make check_env`: Check for NRF5 SDK folder
+- `make update_in3`: Updates the version of in3 being used.
+
 ## Supported transport modules
 
 Change `main.c`to activate he desired transport module, `UART` is de the default. Only **ONE** transport module can be activated on the current firmware version.
 
-- UART - **_default_** - Universal Asynchronous Receiver/Transmitter 
+- UART - **_default_** - Universal Asynchronous Receiver/Transmitter
 - BLE -  Bluetooth Low-Energy
 - USB - Universal Serial Bus
 
@@ -41,7 +42,7 @@ Change `main.c`to activate he desired transport module, `UART` is de the default
 Developer need an UART to USB adapter to be able to access this interface. We used `FTDI232`for testing.
  - [Mouser.de FTDI 232](https://www.mouser.de/ProductDetail/Parallax/28024?qs=%2Fha2pyFaduj%2FYF1ey9away8PnRzDxED6kbp3OE70Ey4%3D)
  - [Bus Pirate](http://dangerousprototypes.com/docs/Bus_Pirate)
- 
+
 ##### Usage
 1. Connect the UART to USB adapter to the nRF accordingly to the pinout
 2. Create a python virtual environment `virtualenv -p python3 venv`
