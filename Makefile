@@ -13,13 +13,15 @@ LIB_DIR := $(PROJ_DIR)/lib
 # 0x5: Goerli, the public cross-client PoA testnet
 # 0x42: Kovan, the public Parity-only PoA testnet
 # 0x7d0: IPFS, ?
-IN3_CHAIN_ID := 0x5
+IN3_CHAIN_ID := 0x2a
 # NANO | BASIC | FULL
 IN3_VERSION := FULL
 # UART | BLE
-IN3_TRANSPORT := UART
+IN3_TRANSPORT := MOCK
 # specify the branch to extract the source code from
 IN3_BRANCH := develop
+# specify the comm. payload type
+IN3_PAYLOAD_TYPE := JSON
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/nrf_in3.ld
@@ -363,6 +365,7 @@ OPT = -Os -g3
 CFLAGS += $(OPT)
 CFLAGS += -DIN3_VERSION_$(IN3_VERSION)
 CFLAGS += -DIN3_TRANSPORT_$(IN3_TRANSPORT)
+CFLAGS += -DIN3_PAYLOAD_$(IN3_PAYLOAD_TYPE)
 CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
