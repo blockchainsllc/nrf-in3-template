@@ -35,7 +35,7 @@
 
 int main() {
 
-    dbg_log("Starting...\n");
+    dbg_log("-----IN3 PROJECT TEMPLATE FOR NRF52840-----\n");
     // INCUBED VERIFICATION LEVEL SELECTOR SET ON MAKEFILE
 #ifdef IN3_VERSION_NANO
     in3_register_eth_nano();
@@ -65,7 +65,7 @@ int main() {
     in3_client->transport    = transport_ble;
 #elif IN3_TRANSPORT_UART
     in3_client->transport    = transport_uart;
-#elif IN3_TRNASPORT_MOCK
+#elif IN3_TRANSPORT_MOCK
     in3_client->transport    = transport_mock;
 #endif
 #ifdef IN3_VERSION_NANO
@@ -93,7 +93,7 @@ int main() {
       free(block);
     }
 
-#ifdef IN3_VERSION_FULL | IN3_VERSION_BASIC
+#if defined(IN3_VERSION_FULL) || defined(IN3_VERSION_BASIC)
     // define a address (20byte)
     address_t contract;
     // copy the hexcoded string into this address

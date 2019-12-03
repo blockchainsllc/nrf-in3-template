@@ -16,8 +16,6 @@
 
 in3_ret_t local_transport_func(char **urls, int urls_len, char *payload, in3_response_t *result) {
   for (int i=0; i<urls_len; i++) {
-    dbg_log("payload: %s\n", payload);
-
     if (strstr(payload, "nodeList") != NULL) {
       dbg_log("Returning Node List ...\n");
       sb_add_range(&(result[i].result), mock_in3_nodeList_response, 0, mock_in3_nodeList_response_len);
@@ -39,7 +37,7 @@ in3_ret_t local_transport_func(char **urls, int urls_len, char *payload, in3_res
 		}
 	}
 
-  return 0;
+  return IN3_OK;
 }
 
 in3_ret_t transport_mock(in3_request_t* req)

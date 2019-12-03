@@ -13,7 +13,7 @@ LIB_DIR := $(PROJ_DIR)/lib
 # 0x5: Goerli, the public cross-client PoA testnet
 # 0x42: Kovan, the public Parity-only PoA testnet
 # 0x7d0: IPFS, ?
-IN3_CHAIN_ID := 0x2a
+IN3_CHAIN_ID := 0x1
 # NANO | BASIC | FULL
 IN3_VERSION := FULL
 # UART | BLE
@@ -357,7 +357,7 @@ LIB_FILES += \
 	$(SDK_ROOT)/components/nfc/t2t_lib/nfc_t2t_lib_gcc.a \
 
 # Optimization flags
-OPT = -Os -g3
+OPT = -O0 -g3
 # Uncomment the line below to enable link time optimization
 #OPT += -flto
 
@@ -366,6 +366,7 @@ CFLAGS += $(OPT)
 CFLAGS += -DIN3_VERSION_$(IN3_VERSION)
 CFLAGS += -DIN3_TRANSPORT_$(IN3_TRANSPORT)
 CFLAGS += -DIN3_PAYLOAD_$(IN3_PAYLOAD_TYPE)
+CFLAGS += -DIN3_CHAIN_ID=$(IN3_CHAIN_ID)
 CFLAGS += -DBOARD_PCA10059
 CFLAGS += -DIN3_MATH_LITE
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
