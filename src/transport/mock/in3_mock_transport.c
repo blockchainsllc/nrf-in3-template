@@ -29,6 +29,7 @@ in3_ret_t local_transport_func(char **urls, int urls_len, char *payload, in3_res
       sb_add_range(&(result[i].result), mock_eth_call_response, 0, mock_eth_call_response_len);
 		}
     else if (strstr(payload, "eth_getCode") != NULL) {
+      dbg_log_raw("Payload: %s\n", payload);
       dbg_log("Returning getCode Response ...\n");
       sb_add_range(&(result[i].result), mock_eth_getCode_response, 0, mock_eth_getCode_response_len);
 		}

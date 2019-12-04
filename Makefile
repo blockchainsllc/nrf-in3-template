@@ -20,8 +20,8 @@ IN3_VERSION := FULL
 IN3_TRANSPORT := MOCK
 # specify the branch to extract the source code from
 IN3_BRANCH := develop
-# specify the comm. payload type
-IN3_PAYLOAD_TYPE := JSON
+# specify the comm. payload type = JSON | BINARY
+IN3_PAYLOAD_TYPE := BINARY
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/nrf_in3.ld
