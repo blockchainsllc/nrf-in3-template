@@ -1,6 +1,7 @@
 #ifndef MOCK_ETH_CALL_RESPONSE
 #define MOCK_ETH_CALL_RESPONSE
 
+//curl https://in3.stage.slock.it/kovan/nd-3 -X POST -H "Content-Type:application/json" -d "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_call\",\"params\":[{\"data\":\"0xa0b0305f987ee1f61e1c83193cde9455f22e61496c11f054fba7634e0000000000000000000000000000000000000000f82f0020f82f0020206901202069012008300020a1dfce3300000000000000000000000000000000000000000000000000000000\",\"gas\":\"0x77c810\",\"to\":\"0x88a7c73d4ca69863a2096cdd306fc0c0e13ef6cc\"},\"latest\"],\"in3\":{\"version\":\"2.0.0\",\"chainId\":\"0x2a\",\"useFullProof\":true,\"verification\":\"proof\", \"useBinary\":true}}" -o eth_call.bin
 unsigned char mock_eth_call_response[] = {
   0xdd, 0x01, 0x26, 0x41, 0x64, 0x34, 0x8d, 0xa1, 0xb6, 0x89, 0x64, 0xc5,
   0x73, 0x45, 0x67, 0x79, 0x6b, 0x3c, 0x21, 0x68, 0x74, 0x74, 0x70, 0x73,

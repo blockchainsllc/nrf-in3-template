@@ -35,7 +35,8 @@
 
 int main() {
 
-    dbg_log("-----IN3 PROJECT TEMPLATE FOR NRF52840-----\n");
+    dbg_log_raw("\n-----IN3 PROJECT TEMPLATE FOR NRF52840-----\n");
+
     // INCUBED VERIFICATION LEVEL SELECTOR SET ON MAKEFILE
 #ifdef IN3_VERSION_NANO
     in3_register_eth_nano();
@@ -76,14 +77,14 @@ int main() {
     in3_client->proof        = PROOF_FULL;
 #endif
 #ifdef IN3_PAYLOAD_BINARY
-    in3_client->use_binary   = 1;
+    in3_client->use_binary   = true;
 #endif
 
 #ifdef IN3_TRANSPORT_BLE
     while(!transport_connected());
 #endif
 
-    // use a ethereum-api instead of pure JSON-RPC-Requests
+    //use a ethereum-api instead of pure JSON-RPC-Requests
     // eth_block_t* block = eth_getBlockByNumber(in3_client, BLKNUM(6970454), true);
     // if (!block) {
     //   dbg_log("Could not find the Block: %s\n", eth_last_error());

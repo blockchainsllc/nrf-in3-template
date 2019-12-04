@@ -1,5 +1,7 @@
 #ifndef MOCK_IN3_NODELIST_RESPONSE
 #define MOCK_IN3_NODELIST_RESPONSE
+
+//curl https://in3.stage.slock.it/mainnet/nd-3 -X POST -H "Content-Type:application/json" -d "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"in3_nodeList\",\"params\":[0,\"0x74438aff7182097427d24c4d62db797333f0df4c5142d2cd4766ca341d2ee23a\",[]],\"in3\":{\"version\":\"2.1.0\",\"chainId\":\"0x1\",\"useFullProof\":true,\"verification\":\"proof\",\"useBinary\":true}}" -o in3_nodeList_response_binary.bin
 unsigned char mock_in3_nodeList_response[] = {
   0xdd, 0x01, 0x25, 0x64, 0x34, 0x8d, 0xa1, 0xb6, 0x89, 0x64, 0xc5, 0x73,
   0x45, 0x67, 0x79, 0x6b, 0x3c, 0x21, 0x68, 0x74, 0x74, 0x70, 0x73, 0x3a,

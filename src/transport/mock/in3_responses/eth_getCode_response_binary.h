@@ -1,5 +1,7 @@
 #ifndef MOCK_ETH_GETCODE_RESPONSE
 #define MOCK_ETH_GETCODE_RESPONSE
+
+//curl https://in3.stage.slock.it/mainnet/nd-3 -X POST -H "Content-Type:application/json" -d "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_getCode\",\"params\":[\"0x2736d225f85740f42d17987100dc8d58e9e16252\",\"latest\"],\"in3\":{\"version\":\"2.1.0\",\"chainId\":\"0x1\",\"useBinary\":true}}" -o eth_getCode_response_binary.bin
 unsigned char mock_eth_getCode_response[] = {
   0xcb, 0x64, 0xb6, 0xf9, 0x23, 0x32, 0x2e, 0x30, 0x00, 0xb6, 0x89, 0x1d,
   0x19, 0x3e, 0x60, 0x80, 0x60, 0x40, 0x52, 0x60, 0x04, 0x36, 0x10, 0x61,

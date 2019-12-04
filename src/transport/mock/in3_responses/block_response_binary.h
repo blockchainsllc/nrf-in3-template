@@ -1,6 +1,7 @@
 #ifndef MOCK_BLOCK_RESPONSE
 #define MOCK_BLOCK_RESPONSE
 
+//curl https://in3.stage.slock.it/mainnet/nd-3 -X POST -H "Content-Type:application/json" -d "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_getBlockByNumber\",\"params\":[\"0x6a5c56\",true],\"in3\":{\"version\":\"2.1.0\",\"chainId\":\"0x1\",\"useFullProof\":true,\"verification\":\"proof\",\"useBinary\":true}}" -o block_response_binary.bin
 unsigned char mock_block_response[] = {
   0xdc, 0x50, 0x64, 0xb6, 0xf9, 0x23, 0x32, 0x2e, 0x30, 0x00, 0xb6, 0x89,
   0x76, 0x3d, 0x15, 0x14, 0x52, 0xbc, 0x44, 0xd5, 0x37, 0x83, 0x09, 0xee,
