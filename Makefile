@@ -469,8 +469,8 @@ update_in3:
 	git clone https://github.com/slockit/in3-c.git $(SRC_DIR)/in3-c; \
 	cd $(SRC_DIR)/in3-c && git checkout $(IN3_BRANCH)
 	mkdir $(SRC_DIR)/in3
-	cp -rf $(SRC_DIR)/in3-c/src/. $(SRC_DIR)/in3/
-	cp -rf $(SRC_DIR)/in3-c/include/in3 $(INC_DIR)/
+	cp -rf $(SRC_DIR)/in3-c/c/src/. $(SRC_DIR)/in3/
+	cp -rf $(SRC_DIR)/in3-c/c/include/in3 $(INC_DIR)/
 	rm -rf $(SRC_DIR)/in3-c
 	rm -rf $(SRC_DIR)/in3/bindings
 	rm -rf $(SRC_DIR)/in3/cmd
