@@ -85,7 +85,7 @@ int main() {
 #endif
 
     //use a ethereum-api instead of pure JSON-RPC-Requests
-    eth_block_t* block = eth_getBlockByNumber(in3_client, BLKNUM(6970454), true);
+    eth_block_t* block = eth_getBlockByNumber(in3_client, BLKNUM(2258120), true);
     if (!block) {
       dbg_log("Could not find the Block: %s\n", eth_last_error());
     }
@@ -98,7 +98,7 @@ int main() {
     // define a address (20byte)
     address_t contract;
     // copy the hexcoded string into this address
-    hex_to_bytes("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
+    hex_to_bytes("0xfea298b288d232a256ae0ad5941e5c890b1db691", -1, contract, 20);
     // ask for the number of servers registered
     json_ctx_t* response = eth_call_fn(in3_client, contract, BLKNUM_LATEST(), "totalServers():uint256");
     if (!response) {
