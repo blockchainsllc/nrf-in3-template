@@ -14,6 +14,8 @@
 #include <in3_ble_transport.h>
 #elif IN3_TRANSPORT_UART
 #include <in3_uart_transport.h>
+#elif IN3_TRANSPORT_MOCK
+#include <in3_mock_transport.h>
 #endif
 #include "nrf_delay.h"
 #include <stdio.h>
@@ -29,10 +31,12 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
+#include "debug.h"
 
 int main() {
 
-    NRF_LOG_INFO("Starting...\n");
+    dbg_log_raw("\n-----IN3 PROJECT TEMPLATE FOR NRF52840-----\n");
+
     // INCUBED VERIFICATION LEVEL SELECTOR SET ON MAKEFILE
 #ifdef IN3_VERSION_NANO
     in3_register_eth_nano();
@@ -62,6 +66,8 @@ int main() {
     in3_client->transport    = transport_ble;
 #elif IN3_TRANSPORT_UART
     in3_client->transport    = transport_uart;
+#elif IN3_TRANSPORT_MOCK
+    in3_client->transport    = transport_mock;
 #endif
 #ifdef IN3_VERSION_NANO
     in3_client->proof        = PROOF_NONE; // NANO
@@ -70,22 +76,25 @@ int main() {
 #elif IN3_VERSION_FULL
     in3_client->proof        = PROOF_FULL;
 #endif
+#ifdef IN3_PAYLOAD_BINARY
+    in3_client->use_binary   = true;
+#endif
 
 #ifdef IN3_TRANSPORT_BLE
     while(!transport_connected());
 #endif
 
-    // use a ethereum-api instead of pure JSON-RPC-Requests
+    //use a ethereum-api instead of pure JSON-RPC-Requests
     eth_block_t* block = eth_getBlockByNumber(in3_client, BLKNUM(6970454), true);
     if (!block) {
-      NRF_LOG_INFO("Could not find the Block: %s\n", eth_last_error());
+      dbg_log("Could not find the Block: %s\n", eth_last_error());
     }
     else {
-      NRF_LOG_INFO("Number of verified transactions in block: %d\n", block->tx_count);
+      dbg_log("Number of verified transactions in block: %d\n", block->tx_count);
       free(block);
     }
 
-#ifdef IN3_VERSION_FULL | IN3_VERSION_BASIC
+#if defined(IN3_VERSION_FULL) || defined(IN3_VERSION_BASIC)
     // define a address (20byte)
     address_t contract;
     // copy the hexcoded string into this address
@@ -93,7 +102,7 @@ int main() {
     // ask for the number of servers registered
     json_ctx_t* response = eth_call_fn(in3_client, contract, BLKNUM_LATEST(), "totalServers():uint256");
     if (!response) {
-      NRF_LOG_INFO("Could not get the response: %s\n", eth_last_error());
+      dbg_log("Could not get the response: %s\n", eth_last_error());
       return -1;
     }
     // convert the response to a uint32_t,
@@ -101,10 +110,10 @@ int main() {
     // clean up resources
     json_free(response);
     // output
-    NRF_LOG_INFO("Found %u servers registered.\n", number_of_servers);
+    dbg_log("Found %u servers registered.\n", number_of_servers);
 
 #elif IN3_VERSION_NANO
-    NRF_LOG_INFO("Nano version, no `eth_call` allowed ;)\n");
+    dbg_log("Nano version, no `eth_call` allowed ;)\n");
 #endif
 
     // clean up
