@@ -81,7 +81,7 @@ void transport_uart_init() {
 /**
  * @brief Function for main application entry.
  */
-in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response_t *result) {
+in3_ret_t local_transport_uart_func (char **urls, int urls_len, char *payload, in3_response_t *result) {
 
     uint8_t response[MAX_RESPONSE_LEN];
     int flag_response_complete = 0;
@@ -125,4 +125,9 @@ in3_ret_t transport_uart (char **urls, int urls_len, char *payload, in3_response
     }
 
     return IN3_OK;
+}
+
+in3_ret_t transport_uart(in3_request_t* req)
+{
+	return local_transport_uart_func((const char**) req->urls, req->urls_len, req->payload, req->results);
 }
