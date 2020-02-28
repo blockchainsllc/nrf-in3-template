@@ -67,8 +67,7 @@ if __name__ == '__main__':
                     print('received: {}'.format(read_string))
                     url, payload = read_string.split(";")
                     response = make_request(url, payload)
-                    print(response)
-                    ser.write(response);
+                    ser.write(response.encode());
                     read_string = ""
 
 
