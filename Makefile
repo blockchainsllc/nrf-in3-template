@@ -13,7 +13,7 @@ LIB_DIR := $(PROJ_DIR)/lib
 # 0x5: Goerli, the public cross-client PoA testnet
 # 0x42: Kovan, the public Parity-only PoA testnet
 # 0x7d0: IPFS, ?
-IN3_CHAIN_ID := 0x1
+IN3_CHAIN_ID := 0x5
 # NANO | BASIC | FULL
 IN3_VERSION := FULL
 # UART | BLE
