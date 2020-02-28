@@ -448,7 +448,7 @@ include $(TEMPLATE_PATH)/Makefile.common
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
-.PHONY: flash erase flash_softdevice debug debug-server sdk_config check_env update_in3
+.PHONY: flash erase flash_softdevice debug debug_server sdk_config check_env update_in3
 
 # Flash the program
 flash: default
@@ -480,7 +480,7 @@ update_in3:
 	rm -rf $(SRC_DIR)/in3/cmd
 	rm -rf $(SRC_DIR)/in3/transport
 
-debug-server:
+debug_server:
 	JLinkGDBServerCL -device nrf52840_xxaa -if swd -port 2331
 
 debug:
