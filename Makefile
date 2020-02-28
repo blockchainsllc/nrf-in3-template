@@ -21,7 +21,7 @@ IN3_TRANSPORT := UART
 # specify the branch to extract the source code from
 IN3_BRANCH := develop
 # specify the comm. payload type = JSON | BINARY
-IN3_PAYLOAD_TYPE := BINARY
+IN3_PAYLOAD_TYPE := JSON
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := ./src/nrf_in3.ld
