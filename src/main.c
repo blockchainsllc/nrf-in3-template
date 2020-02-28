@@ -51,12 +51,12 @@ int main() {
     // Instantiate new incubed client
     in3_t* in3_client = in3_new();
     // INCUBED CLIENT CONFIGURATION
-    in3_client->requestCount = 1; // number of requests to send
+    in3_client->request_count = 1; // number of requests to send
     in3_log_set_level(LOG_TRACE);
 #ifdef IN3_CHAIN_ID
-    in3_client->chainId      = IN3_CHAIN_ID;
+    in3_client->chain_id      = IN3_CHAIN_ID;
 #else
-    in3_client->chainId      = 0x1;
+    in3_client->chain_id      = 0x1;
 #endif
 #ifdef IN3_TRANSPORT_BLE
     in3_client->transport    = transport_ble;
@@ -89,7 +89,7 @@ int main() {
     // define a address (20byte)
     address_t contract;
     // copy the hexcoded string into this address
-    hex2byte_arr("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
+    hex_to_bytes("0x2736D225f85740f42D17987100dc8d58e9e16252", -1, contract, 20);
     // ask for the number of servers registered
     json_ctx_t* response = eth_call_fn(in3_client, contract, BLKNUM_LATEST(), "totalServers():uint256");
     if (!response) {
@@ -99,7 +99,7 @@ int main() {
     // convert the response to a uint32_t,
     uint32_t number_of_servers = d_int(response->result);
     // clean up resources
-    free_json(response);
+    json_free(response);
     // output
     NRF_LOG_INFO("Found %u servers registered.\n", number_of_servers);
 

@@ -32,20 +32,19 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  *******************************************************************************/
 
-/** @file 
- * handles caching and storage.
- * 
- * handles the request.
- * */
+#include "../../core/client/context.h"
 
-#include "context.h"
+#ifndef _ETH_API_ENS_H_
+#define _ETH_API_ENS_H_
 
-#ifndef SEND_H
-#define SEND_H
+typedef enum {
+  ENS_ADDR     = 0, /**< resolve as address */
+  ENS_RESOLVER = 1, /**< resolver */
+  ENS_OWNER    = 2, /**< owner */
+  ENS_NAME     = 3, /**< name */
+  ENS_HASH     = 4  /**< hash */
+} in3_ens_type;
 
-/**
- * executes a request context by  picking nodes and sending it.
- */
-in3_ret_t in3_send_ctx(in3_ctx_t* ctx);
+in3_ret_t ens_resolve(in3_ctx_t* parent, char* name, const address_t registry, in3_ens_type type, uint8_t* dst, int* len);
 
-#endif
+#endif // _ETH_API_ENS_H_

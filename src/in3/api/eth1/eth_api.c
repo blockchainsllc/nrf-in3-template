@@ -40,7 +40,11 @@
 #include "../../verifier/eth1/basic/filter.h"
 #include "../../verifier/eth1/nano/rlp.h"
 #include "abi.h"
+#ifdef __ZEPHYR__
+#include <zephyr.h>
+#else
 #include <errno.h>
+#endif
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -63,7 +67,7 @@
     _res_ = (HANDLE_RESULT);                                                              \
   else                                                                                    \
     memset(&_res_, 0, sizeof(RETURN_TYPE));                                               \
-  free_ctx(_ctx_);                                                                        \
+  ctx_free(_ctx_);                                                                        \
   sb_free(params);                                                                        \
   return _res_;
 
@@ -95,10 +99,20 @@ static void set_errorn(int std_error, char* msg, int len) {
 }
 
 // sets the error and a message
-static void set_error(int std_error, char* msg) {
+static void set_error_intern(int std_error, char* msg) {
+#ifndef __ZEPHYR__
   in3_log_error("Request failed due to %s - %s\n", strerror(std_error), msg);
+#else
+  in3_log_error("Request failed due to %s\n", msg);
+#endif
   set_errorn(std_error, msg, strlen(msg));
 }
+
+#ifdef ERR_MSG
+#define set_error(e, msg) set_error_intern(e, msg)
+#else
+#define set_error(e, msg) set_error_intern(e, "E")
+#endif
 
 /** copies bytes to a fixed length destination (leftpadding 0 if needed).*/
 static void copy_fixed(uint8_t* dst, uint32_t len, bytes_t data) {
@@ -148,18 +162,22 @@ static uint256_t uint256_from_bytes(bytes_t bytes) {
 
 /** returns the result from a previously executed ctx*/
 static d_token_t* get_result(in3_ctx_t* ctx) {
-  d_token_t* res = d_get(ctx->responses[0], K_RESULT);
-  if (res) return res;                                // everthing is good, we have a result
-  if (ctx->error)                                     // error means something went wrong during verification or a timeout occured.
-    set_error(ETIMEDOUT, ctx->error);                 // so we copy the error as last_error
-  else {                                              // but since we did not get a result and even without a error
-    d_token_t* r = d_get(ctx->responses[0], K_ERROR); // we find the error in the response from the server
-    if (d_type(r) == T_OBJECT) {                      // the response was correct but contains a error-object, which we convert into a string
-      str_range_t s = d_to_json(r);                   // this will not work, if we used binary-format, since we don't know the propnames in this case!!!
-      set_errorn(ETIMEDOUT, s.data, s.len);           // set error as json
-    } else                                            // or we have a string
-      set_errorn(ETIMEDOUT, d_string(r), d_len(r));   // and can simply copy it
+  if (ctx->error) {                   // error means something went wrong during verification or a timeout occured.
+    set_error(ETIMEDOUT, ctx->error); // so we copy the error as last_error
+    return NULL;
+  } else if (!ctx->responses) {
+    set_error(IN3_ERPC, "No response");
+    return NULL;
   }
+
+  d_token_t* t = d_get(ctx->responses[0], K_RESULT);
+  if (t) return t; // everthing is good, we have a result
+
+  // if no result, we expect an error
+  t = d_get(ctx->responses[0], K_ERROR); // we we have an error...
+  set_error(ETIMEDOUT, !t
+                           ? "No result or error in response"
+                           : (d_type(t) == T_OBJECT ? d_string(t) : d_get_stringk(t, K_MESSAGE)));
   return NULL;
 }
 
@@ -202,10 +220,15 @@ static void params_add_bool(sb_t* sb, bool val) {
   if (sb->len > 1) sb_add_char(sb, ',');
   sb_add_chars(sb, val ? "true" : "false");
 }
+static size_t align(size_t val) {
+  const size_t add = val % sizeof(void*);
+  return add ? (sizeof(void*) - add + val) : val;
+}
 
 /** copy the data from the token to a eth_tx_t-object */
 static uint32_t write_tx(d_token_t* t, eth_tx_t* tx) {
-  bytes_t b             = d_to_bytes(d_get(t, K_INPUT));
+  bytes_t b = d_to_bytes(d_get(t, K_INPUT));
+
   tx->signature[64]     = d_get_intk(t, K_V);
   tx->block_number      = d_get_longk(t, K_BLOCK_NUMBER);
   tx->gas               = d_get_longk(t, K_GAS);
@@ -213,7 +236,7 @@ static uint32_t write_tx(d_token_t* t, eth_tx_t* tx) {
   tx->nonce             = d_get_longk(t, K_NONCE);
   tx->data              = bytes((uint8_t*) tx + sizeof(eth_tx_t), b.len);
   tx->transaction_index = d_get_intk(t, K_TRANSACTION_INDEX);
-  memcpy(tx + sizeof(eth_tx_t), b.data, b.len); // copy the data right after the tx-struct.
+  memcpy((uint8_t*) tx + sizeof(eth_tx_t), b.data, b.len); // copy the data right after the tx-struct.
   copy_fixed(tx->block_hash, 32, d_to_bytes(d_getl(t, K_BLOCK_HASH, 32)));
   copy_fixed(tx->from, 20, d_to_bytes(d_getl(t, K_FROM, 20)));
   copy_fixed(tx->to, 20, d_to_bytes(d_getl(t, K_TO, 20)));
@@ -222,11 +245,10 @@ static uint32_t write_tx(d_token_t* t, eth_tx_t* tx) {
   copy_fixed(tx->signature, 32, d_to_bytes(d_getl(t, K_R, 32)));
   copy_fixed(tx->signature + 32, 32, d_to_bytes(d_getl(t, K_S, 32)));
 
-  return sizeof(eth_tx_t) + b.len;
+  return align(sizeof(eth_tx_t) + b.len);
 }
-
 /** calculate the tx size as struct+data */
-static uint32_t get_tx_size(d_token_t* tx) { return d_to_bytes(d_get(tx, K_INPUT)).len + sizeof(eth_tx_t); }
+static uint32_t get_tx_size(d_token_t* tx) { return align(d_to_bytes(d_get(tx, K_INPUT)).len) + sizeof(eth_tx_t); }
 
 /** 
  * allocates memory for the block and all required lists like the transactions and copies the data.
@@ -252,26 +274,26 @@ static eth_block_t* eth_getBlock(d_token_t* result, bool include_tx) {
       bytes_t    extra  = d_to_bytes(d_get(result, K_EXTRA_DATA));
 
       // calc size
-      uint32_t s = sizeof(eth_block_t);
+      uint32_t s = align(sizeof(eth_block_t));
       if (include_tx) {
         for (d_iterator_t it = d_iter(txs); it.left; d_iter_next(&it))
           s += get_tx_size(it.token); // add all struct-size for each transaction
       } else                          // or
         s += 32 * d_len(txs);         // just the transaction hashes
-      s += extra.len;                 // extra-data
+      s += align(extra.len);          // extra-data
       for (d_iterator_t sf = d_iter(sealed); sf.left; d_iter_next(&sf)) {
         bytes_t t = d_to_bytes(sf.token);
         rlp_decode(&t, 0, &t);
-        s += t.len + sizeof(bytes_t); // for each field in the selad-fields we need a bytes_t-struct in the array + the data itself
+        s += align(t.len) + align(sizeof(bytes_t)); // for each field in the selad-fields we need a bytes_t-struct in the array + the data itself
       }
 
       // copy data
-      eth_block_t* b = malloc(s);
+      eth_block_t* b = _calloc(1, s);
       if (!b) {
         set_error(ENOMEM, "Not enough memory");
         return NULL;
       }
-      uint8_t* p = (uint8_t*) b + sizeof(eth_block_t); // pointer where we add the next data after the block-struct
+      uint8_t* p = (uint8_t*) b + align(sizeof(eth_block_t)); // pointer where we add the next data after the block-struct
       copy_fixed(b->author, 20, d_to_bytes(d_getl(result, K_AUTHOR, 20)));
       copy_fixed(b->difficulty.data, 32, d_to_bytes(d_get(result, K_DIFFICULTY)));
       copy_fixed(b->hash, 32, d_to_bytes(d_getl(result, K_HASH, 32)));
@@ -293,15 +315,15 @@ static eth_block_t* eth_getBlock(d_token_t* result, bool include_tx) {
       b->seal_fields_count = d_len(sealed);
       b->extra_data        = bytes(p, extra.len);
       memcpy(p, extra.data, extra.len);
-      p += extra.len;
+      p += align(extra.len);
       b->seal_fields = (void*) p;
-      p += sizeof(bytes_t) * b->seal_fields_count;
+      p += align(sizeof(bytes_t)) * b->seal_fields_count;
       for (d_iterator_t sfitr = d_iter(sealed); sfitr.left; d_iter_next(&sfitr)) {
         bytes_t sf = d_to_bytes(sfitr.token);
         rlp_decode(&sf, 0, &sf);
         b->seal_fields[b->seal_fields_count - sfitr.left] = bytes(p, sf.len);
         memcpy(p, sf.data, sf.len);
-        p += sf.len;
+        p += align(sf.len);
       }
 
       b->tx_data   = include_tx ? (eth_tx_t*) p : NULL;
@@ -410,6 +432,12 @@ static json_ctx_t* parse_call_result(call_request_t* req, d_token_t* result) {
   return res;
 }
 
+static uint64_t* d_to_u64ptr(d_token_t* res) {
+  uint64_t* p = _malloc(sizeof(uint64_t));
+  *p          = d_long(res);
+  return p;
+}
+
 static void* eth_call_fn_intern(in3_t* in3, address_t contract, eth_blknum_t block, bool only_estimate, char* fn_sig, va_list ap) {
   rpc_init;
   int             res = 0;
@@ -430,9 +458,9 @@ static void* eth_call_fn_intern(in3_t* in3, address_t contract, eth_blknum_t blo
           json_array_add_value(args, json_create_bytes(in_data, va_arg(ap, bytes_t)));
           break;
         case A_STRING:
+        case A_INT:
           json_array_add_value(args, json_create_string(in_data, va_arg(ap, char*)));
           break;
-        case A_INT:
         case A_UINT: {
           if (p->type_len <= 4)
             json_array_add_value(args, json_create_int(in_data, va_arg(ap, uint32_t)));
@@ -449,7 +477,7 @@ static void* eth_call_fn_intern(in3_t* in3, address_t contract, eth_blknum_t blo
     }
 
     if (res >= 0 && (res = set_data(req, args, req->in_data)) < 0) req->error = "could not set the data";
-    free_json(in_data);
+    json_free(in_data);
   }
   if (res >= 0) {
     bytes_t to = bytes(contract, 20);
@@ -461,15 +489,14 @@ static void* eth_call_fn_intern(in3_t* in3, address_t contract, eth_blknum_t blo
     params_add_blk_num_t(params, block);
   } else {
     set_error(0, req->error ? req->error : "Error parsing the request-data");
-    sb_free(
-        params);
+    sb_free(params);
     req_free(req);
     return NULL;
   }
 
   if (res >= 0) {
     if (only_estimate) {
-      rpc_exec("eth_estimateGas", d_token_t*, result);
+      rpc_exec("eth_estimateGas", uint64_t*, d_to_u64ptr(result));
     } else {
       rpc_exec("eth_call", json_ctx_t*, parse_call_result(req, result));
     }
@@ -483,10 +510,12 @@ static char* wait_for_receipt(in3_t* in3, char* params, int timeout, int count) 
   d_token_t* result = get_result(ctx);
   if (result) {
     if (d_type(result) == T_NULL) {
-      free_ctx(ctx);
+      ctx_free(ctx);
       if (count) {
 #if defined(_WIN32) || defined(WIN32)
         Sleep(timeout);
+#elif defined(__ZEPHYR__)
+        k_sleep(timeout);
 #else
         nanosleep((const struct timespec[]){{timeout / 1000, ((long) timeout % 1000) * 1000000L}}, NULL);
 #endif
@@ -498,12 +527,12 @@ static char* wait_for_receipt(in3_t* in3, char* params, int timeout, int count) 
     } else {
       //
       char* c = d_create_json(result);
-      free_ctx(ctx);
+      ctx_free(ctx);
       return c;
     }
   }
-  free_ctx(ctx);
   set_error(3, ctx->error ? ctx->error : "Error getting the Receipt!");
+  ctx_free(ctx);
   return NULL;
 }
 
@@ -541,20 +570,24 @@ in3_ret_t eth_getFilterChanges(in3_t* in3, size_t id, bytes32_t** block_hashes, 
   if (id == 0 || id > in3->filters->count)
     return IN3_EINVAL;
 
-  uint64_t      blkno = eth_blockNumber(in3);
-  in3_filter_t* f     = in3->filters->array[id - 1];
+  in3_filter_t* f = in3->filters->array[id - 1];
+  if (!f)
+    return IN3_EFIND;
+
+  uint64_t blkno = eth_blockNumber(in3);
   switch (f->type) {
     case FILTER_EVENT: {
-      char* fopt_ = filter_opt_set_fromBlock(f->options, f->last_block);
+      char* fopt_ = filter_opt_set_fromBlock(f->options, f->last_block, !f->is_first_usage);
       *logs       = eth_getLogs(in3, fopt_);
       _free(fopt_);
-      f->last_block = blkno + 1;
+      f->last_block     = blkno + 1;
+      f->is_first_usage = false;
       return 0;
     }
     case FILTER_BLOCK:
       if (blkno > f->last_block) {
         uint64_t blkcount = blkno - f->last_block;
-        *block_hashes     = malloc(sizeof(bytes32_t) * blkcount);
+        *block_hashes     = _malloc(sizeof(bytes32_t) * blkcount);
         for (uint64_t i = f->last_block + 1, j = 0; i <= blkno; i++, j++) {
           eth_block_t* blk = eth_getBlockByNumber(in3, BLKNUM(i), false);
           if (blk) {
@@ -581,16 +614,19 @@ in3_ret_t eth_getFilterLogs(in3_t* in3, size_t id, eth_log_t** logs) {
     return IN3_EINVAL;
 
   in3_filter_t* f = in3->filters->array[id - 1];
+  if (!f)
+    return IN3_EFIND;
+
   switch (f->type) {
     case FILTER_EVENT:
       *logs = eth_getLogs(in3, f->options);
-      return 0;
+      return (*logs) ? IN3_OK : IN3_EUNKNOWN;
     default:
       return IN3_ENOTSUP;
   }
 }
 
-void free_log(eth_log_t* log) {
+void eth_log_free(eth_log_t* log) {
   _free(log->data.data);
   _free(log->topics);
   _free(log);
@@ -624,9 +660,11 @@ json_ctx_t* eth_call_fn(in3_t* in3, address_t contract, eth_blknum_t block, char
 uint64_t eth_estimate_fn(in3_t* in3, address_t contract, eth_blknum_t block, char* fn_sig, ...) {
   va_list ap;
   va_start(ap, fn_sig);
-  d_token_t* response = eth_call_fn_intern(in3, contract, block, true, fn_sig, ap);
+  uint64_t* response = eth_call_fn_intern(in3, contract, block, true, fn_sig, ap);
   va_end(ap);
-  return d_long(response);
+  uint64_t tmp = *response;
+  _free(response);
+  return tmp;
 }
 
 static eth_tx_t* parse_tx(d_token_t* result) {
@@ -699,11 +737,11 @@ static eth_tx_receipt_t* parse_tx_receipt(d_token_t* result) {
   return NULL;
 }
 
-void free_tx_receipt(eth_tx_receipt_t* txr) {
+void eth_tx_receipt_free(eth_tx_receipt_t* txr) {
   eth_log_t *curr = txr->logs, *next = NULL;
   while (curr != NULL) {
     next = curr->next;
-    free_log(curr);
+    eth_log_free(curr);
     curr = next;
   }
   _free(txr);
@@ -715,9 +753,9 @@ eth_tx_receipt_t* eth_getTransactionReceipt(in3_t* in3, bytes32_t tx_hash) {
   rpc_exec("eth_getTransactionReceipt", eth_tx_receipt_t*, parse_tx_receipt(result));
 }
 
-eth_block_t* eth_getUncleByBlockNumberAndIndex(in3_t* in3, bytes32_t hash, size_t index) {
+eth_block_t* eth_getUncleByBlockNumberAndIndex(in3_t* in3, eth_blknum_t block, size_t index) {
   rpc_init;
-  params_add_bytes(params, bytes(hash, 32));
+  params_add_blk_num_t(params, block);
   params_add_number(params, index);
   rpc_exec("eth_getUncleByBlockNumberAndIndex", eth_block_t*, eth_getBlock(result, true));
 }
@@ -766,7 +804,7 @@ bytes_t* eth_sendRawTransaction(in3_t* in3, bytes_t data) {
   rpc_exec("eth_sendRawTransaction", bytes_t*, b_dup(d_bytes(result)));
 }
 
-in3_ret_t to_checksum(address_t adr, uint64_t chain_id, char out[43]) {
+in3_ret_t to_checksum(address_t adr, chain_id_t chain_id, char out[43]) {
   char tmp[64], msg[41], *hexadr;
   int  p = chain_id ? sprintf(tmp, "%i0x", (uint32_t) chain_id) : 0;
   bytes_to_hex(adr, 20, tmp + p);
@@ -779,6 +817,6 @@ in3_ret_t to_checksum(address_t adr, uint64_t chain_id, char out[43]) {
   out[1]  = 'x';
   out[42] = 0;
   for (int i = 0; i < 40; i++)
-    out[i + 2] = strtohex(msg[i]) >= 8 ? (hexadr[i] > 0x60 ? (hexadr[i] - 0x20) : hexadr[i]) : hexadr[i];
+    out[i + 2] = hexchar_to_int(msg[i]) >= 8 ? (hexadr[i] > 0x60 ? (hexadr[i] - 0x20) : hexadr[i]) : hexadr[i];
   return IN3_OK;
 }

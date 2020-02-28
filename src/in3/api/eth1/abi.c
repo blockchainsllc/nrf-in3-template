@@ -33,6 +33,7 @@
  *******************************************************************************/
 
 #include "abi.h"
+#include "../../core/util/bitset.h"
 #include "../../core/util/bytes.h"
 #include "../../core/util/data.h"
 #include "../../core/util/mem.h"
@@ -148,6 +149,30 @@ char* parse_tuple(bytes_builder_t* bb, char* c) {
   return add_token(bb, start, c - start, tuple) < 0 ? NULL : c;
 }
 
+static void remove_parens(char* s, size_t l) {
+  for (size_t i = l; i != 0; --i)
+    if (s[i - 1] == '(' || s[i - 1] == ')')
+      for (size_t j = i - 1; j <= l; ++j)
+        s[j] = s[j + 1];
+}
+
+char* escape_tuples(char* sig, size_t l, char** startb, char** ends) {
+  if (*sig) {
+    char* sig_ = _strdupn(sig, l);
+    *startb    = memchr(sig_, '(', l);
+    *ends      = memchr(sig_, ':', l);
+    remove_parens(sig_ + (*startb - sig_) + 1, (*ends ? (unsigned) (*ends - *startb) : (l - (*startb - sig_))) - 2);
+    if (*ends) {
+      *startb = memchr(*ends, '(', strlen(*ends));
+      if (*startb) remove_parens(sig_ + (*startb - sig_) + 1, strlen(sig_ + (*startb - sig_) + 2));
+    }
+    *ends   = memchr(sig_, ':', l);
+    *startb = memchr(sig_, '(', l);
+    return sig_;
+  }
+  return NULL;
+}
+
 call_request_t* parseSignature(char* sig) {
   call_request_t* req = _malloc(sizeof(call_request_t));
   req->error          = NULL;
@@ -158,7 +183,8 @@ call_request_t* parseSignature(char* sig) {
     return req;
   }
 
-  bytes_t          signature = bytes((uint8_t*) sig, ends ? (ends - sig) : l);
+  char*            s         = escape_tuples(sig, l, &startb, &ends);
+  bytes_t          signature = bytes((uint8_t*) s, ends ? (unsigned) (ends - s) : strlen(s));
   bytes32_t        hash;
   bytes_builder_t* tokens = bb_new();
   if (!parse_tuple(tokens, startb + 1)) {
@@ -180,7 +206,7 @@ call_request_t* parseSignature(char* sig) {
   // create input data
   sha3_to(&signature, hash);
   bb_write_raw_bytes(req->call_data, hash, 4); // write functionhash
-
+  _free(s);
   return req;
 }
 
@@ -227,15 +253,14 @@ static int head_size(var_t* t, bool single) {
     var_t* s = NULL;
     for (i = 0, s = t + 1; i < t->type_len; i++, s = t_next(s)) a += head_size(s, false);
   } else if (t->type == A_BYTES || t->type == A_STRING)
-    a = word_size(t->type_len);
+    a = word_size(t->type_len) * 32;
   return single ? a : (a * f);
 }
 
 static int check_buffer(call_request_t* req, int pos) {
   if ((uint32_t) pos > req->call_data->b.len) {
-    if (bb_check_size(req->call_data, pos -
-
-                                          req->call_data->b.len) < 0) return -1;
+    if (bb_check_size(req->call_data, pos - req->call_data->b.len) < 0)
+      return -1;
     req->call_data->b.len = pos;
   }
   return 0;
@@ -268,6 +293,25 @@ static int write_left(call_request_t* req, int p, bytes_t data) {
   if ((uint32_t) l > data.len)
     memset(pos + data.len, 0, l - data.len);
   return l;
+}
+
+static void twos_complement(bitset_t* bs) {
+  // 2's complement
+  unsigned k = 0;
+  for (; k < 256; k++)
+    if (bs_isset(bs, k))
+      break;
+  k++;
+  for (; k < 256; k++)
+    bs_toggle(bs, k);
+
+  // Convert to big-endian
+  uint8_t tmp;
+  for (int i = 0; i < 16; ++i) {
+    tmp                = bs->bits.p[i];
+    bs->bits.p[i]      = bs->bits.p[31 - i];
+    bs->bits.p[31 - i] = tmp;
+  }
 }
 
 static int encode(call_request_t* req, d_token_t* data, var_t* tuple, int head_pos, int tail_pos) {
@@ -306,8 +350,29 @@ static int encode(call_request_t* req, d_token_t* data, var_t* tuple, int head_p
           head_pos = encode(req, dd, t, head_pos, max((int) buffer->b.len, tail_start));
         break;
       }
+      case A_INT: {
+        switch (d_type(d)) {
+          case T_STRING: {
+            char*              tmp = d_string(d);
+            unsigned long long n   = _strtoull(tmp + 1, NULL, 10);
+            bitset_t*          bs  = bs_from_ull(n, 256);
+            twos_complement(bs);
+            bytes_t b = {.data = bs->bits.p, .len = 32};
+            head_pos += write_right(req, head_pos, (*tmp == '-') ? b : d_to_bytes(d));
+            bs_free(bs);
+            break;
+          }
+          case T_INTEGER:
+          case T_BYTES: {
+            head_pos += write_right(req, head_pos, d_to_bytes(d));
+            break;
+          }
+          default:
+            return add_error(req, "big negative numbers are not supported (yet)!");
+        }
+        break;
+      }
       case A_ADDRESS:
-      case A_INT:
       case A_UINT:
       case A_BOOL:
         head_pos += write_right(req, head_pos, d_to_bytes(d));
@@ -363,8 +428,20 @@ d_token_t* get_data(json_ctx_t* ctx, var_t* t, bytes_t data, int* offset) {
       for (int i = 0; i < len; i++, p = t_next(p))
         json_array_add_value(res, get_data(ctx, p, data, offset));
       break;
+    case A_INT: {
+      bitset_t bs  = {.len = 256, .bits.p = data.data + dst};
+      bool     neg = bs_isset(&bs, 0U);
+      twos_complement(&bs);
+
+      unsigned long long n;
+      memcpy(&n, bs.bits.p, sizeof(n));
+
+      char buf[32];
+      sprintf(buf, "%s%llu", neg ? "-" : "", n + 1);
+      res = json_create_string(ctx, buf);
+      break;
+    }
     case A_UINT:
-    case A_INT:
       tmp = bytes(data.data + dst, 32);
       b_optimize_len(&tmp);
       res = json_create_bytes(ctx, tmp);
@@ -390,7 +467,7 @@ d_token_t* get_data(json_ctx_t* ctx, var_t* t, bytes_t data, int* offset) {
       }
 
       if (t->type == A_STRING) {
-        char tmp[len + 1];
+        char* tmp = alloca(len + 1);
         strncpy(tmp, (char*) (data.data + dst), len);
         tmp[len] = '\0';
         res      = json_create_string(ctx, tmp);

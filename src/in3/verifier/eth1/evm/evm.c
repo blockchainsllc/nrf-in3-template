@@ -42,21 +42,18 @@
 #include "../nano/serialize.h"
 #include "gas.h"
 #include "opcodes.h"
+#include "precompiled.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-
+int exit_zero(void) { return 0; }
 int evm_stack_push(evm_t* evm, uint8_t* data, uint8_t len) {
   if (evm->stack_size == EVM_STACK_LIMIT || len > 32) return EVM_ERROR_STACK_LIMIT;
-  if (&evm->stack.b.len + len > &evm->stack.bsize) {
-    // we need to make sure the data ref is not part of the stack and would be ionvalidated now
-    uint32_t tmp[32];
-    memcpy(tmp, data, len);
-    if (bb_check_size(&evm->stack, len + 1)) return EVM_ERROR_EMPTY_STACK;
-    memcpy(evm->stack.b.data + evm->stack.b.len, tmp, len);
-  } else
-    memcpy(evm->stack.b.data + evm->stack.b.len, data, len);
-
+  // we need to make sure the data ref is not part of the stack and would be ionvalidated now
+  uint32_t tmp[32];
+  memcpy(tmp, data, len);
+  if (bb_check_size(&evm->stack, len + 1)) return EVM_ERROR_EMPTY_STACK;
+  memcpy(evm->stack.b.data + evm->stack.b.len, tmp, len);
   evm->stack.b.len += len + 1;
   evm->stack.b.data[evm->stack.b.len - 1] = len;
   evm->stack_size++;
@@ -221,9 +218,9 @@ void evm_print_op(evm_t* evm, uint64_t last_gas, uint32_t pos) {
   }
 
   if (last_gas > evm->gas) {
-    in3_log_trace("%08" PRIx64 " %03i \x1B[33m%5" PRIu64 "\x1B[0m %02x : ", evm->gas, pos, last_gas - evm->gas, op);
+    in3_log_trace("%" PRIu64 " %03i \x1B[33m%5" PRIu64 "\x1B[0m %02x : ", evm->gas, pos, last_gas - evm->gas, op);
   } else {
-    in3_log_trace("%08" PRIx64 " %03i \x1B[33m+%5" PRIu64 "\x1B[0m %02x : ", evm->gas, pos, evm->gas - last_gas, op);
+    in3_log_trace("%" PRIu64 " %03i \x1B[33m+%5" PRIu64 "\x1B[0m %02x : ", evm->gas, pos, evm->gas - last_gas, op);
   }
 #else
   UNUSED_VAR(last_gas);
@@ -297,6 +294,7 @@ void evm_print_op(evm_t* evm, uint64_t last_gas, uint32_t pos) {
     case 0x43: __code("NUMBER");
     case 0x44: __code("DIFFICULTY");
     case 0x45: __code("GASLIMIT");
+    case 0x46: __code("CHAINID");
     case 0x50: __code("POP");
     case 0x51: __code("MLOAD");
     case 0x52: __code("MSTORE");
@@ -454,6 +452,8 @@ int evm_execute(evm_t* evm) {
       op_exec(op_header(evm, BLOCKHEADER_DIFFICULTY), G_BASE);
     case 0x45: // GASLIMIT
       op_exec(op_header(evm, BLOCKHEADER_GAS_LIMIT), G_BASE);
+    case 0x46: // CHAINID
+      op_exec((evm->properties & EVM_PROP_ISTANBUL) ? evm_stack_push_long(evm, evm->chain_id) : EVM_ERROR_INVALID_OPCODE, G_BASE);
 
     case 0x50: // POP
       op_exec(evm_stack_pop(evm, NULL, 0), G_BASE);

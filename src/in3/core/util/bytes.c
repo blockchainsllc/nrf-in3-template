@@ -40,17 +40,18 @@
 #include <stdio.h>
 #include <string.h>
 
-bytes_t* b_new(char* data, int len) {
+bytes_t* b_new(const char* data, int len) {
   bytes_t* b = _calloc(1, sizeof(bytes_t));
 
   b->len  = len;
   b->data = _calloc(1, len);
-  b->data = memcpy(b->data, data, len);
+  if (data)
+    b->data = memcpy(b->data, data, len);
 
   return b;
 }
 
-void ba_print(uint8_t* a, size_t l) {
+void ba_print(const uint8_t* a, size_t l) {
   size_t i;
   if (!a) return;
 
@@ -64,7 +65,7 @@ void ba_print(uint8_t* a, size_t l) {
   in3_log_enable_prefix();
 }
 
-void b_print(bytes_t* a) {
+void b_print(const bytes_t* a) {
   size_t i;
   if (!a) return;
 #ifdef __ZEPHYR__
@@ -80,9 +81,8 @@ void b_print(bytes_t* a) {
 #endif
 }
 
-int b_cmp(bytes_t* a, bytes_t* b) {
-  if ((a && b) == 0) return 1;
-
+int b_cmp(const bytes_t* a, const bytes_t* b) {
+  if ((a && b) == 0 || (a->len == 0 && b->len == 0)) return 1;
   return a->data && b->data && a->len == b->len && memcmp(a->data, b->data, a->len) == 0;
 }
 
@@ -98,7 +98,7 @@ void b_free(bytes_t* a) {
   _free(a);
 }
 
-bytes_t* b_dup(bytes_t* a) {
+bytes_t* b_dup(const bytes_t* a) {
   if (a == NULL) return NULL;
   bytes_t* out = _calloc(1, sizeof(bytes_t));
   out->data    = _calloc(1, a->len);
@@ -115,11 +115,6 @@ bytes_t cloned_bytes(bytes_t data) {
 uint8_t b_read_byte(bytes_t* b, size_t* pos) {
   uint8_t val = *(uint8_t*) (b->data + *pos);
   *pos += 1;
-  return val;
-}
-uint16_t b_read_short(bytes_t* b, size_t* pos) {
-  uint16_t val = (uint16_t) bytes_to_int(b->data + *pos, 2);
-  *pos += 2;
   return val;
 }
 uint32_t b_read_int(bytes_t* b, size_t* pos) {
@@ -140,22 +135,6 @@ char* b_new_chars(bytes_t* b, size_t* pos) {
   return r;
 }
 
-uint32_t b_read_int_be(bytes_t* b, size_t* pos, size_t len) {
-  uint32_t val = 0;
-  for (size_t i = 0; i < len; i++) val |= b->data[*pos + len - i - 1] << (i * 8);
-  *pos += len;
-  return val;
-}
-
-bytes_t* b_new_dyn_bytes(bytes_t* b, size_t* pos) {
-  size_t   l = b_read_int(b, pos);
-  bytes_t* r = _malloc(sizeof(bytes_t));
-  r->data    = _malloc(l);
-  r->len     = l;
-  memcpy(r->data, b->data + *pos, l);
-  *pos += l;
-  return r;
-}
 bytes_t* b_new_fixed_bytes(bytes_t* b, size_t* pos, int len) {
   bytes_t* r = _malloc(sizeof(bytes_t));
   r->data    = _malloc(len);
@@ -205,13 +184,8 @@ void bb_write_chars(bytes_builder_t* bb, char* c, int len) {
   bb->b.data[bb->b.len + len] = 0;
   bb->b.len += len + 1;
 }
-void bb_write_dyn_bytes(bytes_builder_t* bb, bytes_t* src) {
-  bb_check_size(bb, src->len + 4);
-  int_to_bytes(src->len, bb->b.data + bb->b.len);
-  memcpy(bb->b.data + bb->b.len + 4, src->data, src->len);
-  bb->b.len += src->len + 4;
-}
-void bb_write_fixed_bytes(bytes_builder_t* bb, bytes_t* src) {
+
+void bb_write_fixed_bytes(bytes_builder_t* bb, const bytes_t* src) {
   bb_check_size(bb, src->len);
   memcpy(bb->b.data + bb->b.len, src->data, src->len);
   bb->b.len += src->len;
@@ -230,13 +204,6 @@ void bb_write_long(bytes_builder_t* bb, uint64_t val) {
   bb_check_size(bb, 8);
   long_to_bytes(val, bb->b.data + bb->b.len);
   bb->b.len += 8;
-}
-void bb_write_short(bytes_builder_t* bb, uint16_t val) {
-  bb_check_size(bb, 2);
-  uint8_t* dst = bb->b.data + bb->b.len;
-  *(dst)       = val >> 8 & 0xFF;
-  *(dst + 1)   = val & 0xFF;
-  bb->b.len += 2;
 }
 
 void bb_write_long_be(bytes_builder_t* bb, uint64_t val, int len) {
