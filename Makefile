@@ -17,7 +17,7 @@ IN3_CHAIN_ID := 0x1
 # NANO | BASIC | FULL
 IN3_VERSION := FULL
 # UART | BLE
-IN3_TRANSPORT := MOCK
+IN3_TRANSPORT := UART
 # specify the branch to extract the source code from
 IN3_BRANCH := develop
 # specify the comm. payload type = JSON | BINARY

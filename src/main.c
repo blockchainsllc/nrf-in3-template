@@ -77,7 +77,7 @@ int main() {
     in3_client->proof        = PROOF_FULL;
 #endif
 #ifdef IN3_PAYLOAD_BINARY
-    in3_client->use_binary   = true;
+    in3_client->flags        = in3_client->flags | FLAGS_BINARY;
 #endif
 
 #ifdef IN3_TRANSPORT_BLE
