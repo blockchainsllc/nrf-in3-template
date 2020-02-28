@@ -23,7 +23,7 @@
 #define RTS_PIN_NUMBER NRF_GPIO_PIN_MAP(1,13)
 #define CTS_PIN_NUMBER NRF_GPIO_PIN_MAP(1,15)
 
-#define MAX_RESPONSE_LEN 65536
+#define MAX_RESPONSE_LEN 75000
 
 
 //#define ENABLE_LOOPBACK_TEST  /**< if defined, then this example will be a loopback test, which means that TX should be connected to RX to get data loopback. */
